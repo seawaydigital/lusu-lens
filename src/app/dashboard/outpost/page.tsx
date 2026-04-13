@@ -29,6 +29,7 @@ import HappyHourImpact from '@/components/outpost/HappyHourImpact'
 import FridayWingsTracker from '@/components/outpost/FridayWingsTracker'
 import CateringRevenue from '@/components/outpost/CateringRevenue'
 import DoorRevenueTracker from '@/components/outpost/DoorRevenueTracker'
+import AutoInsights from '@/components/shared/AutoInsights'
 import ExportButton from '@/components/shared/ExportButton'
 import MissingDataSection from '@/components/shared/MissingDataSection'
 import type { UploadRecord, DailySummary, ProductRecord } from '@/types'
@@ -155,6 +156,14 @@ function OutpostContent() {
         : <DataQualityBannerGroup uploads={selectedUploads} />
       }
 
+      {/* SECTION 0: KEY INSIGHTS */}
+      {hasSummary && (
+        <section id="insights">
+          <h2 className="text-lg font-semibold mb-4 border-b border-outpost-black/20 pb-2">Key Insights</h2>
+          <AutoInsights summaries={summaries} venue="outpost" eventDays={eventDays} />
+        </section>
+      )}
+
       {/* SECTION 1: EVENTS */}
       <section id="event-analysis">
         <h2 className="text-lg font-semibold mb-4 border-b border-outpost-black/20 pb-2">Event Nights</h2>
@@ -213,12 +222,14 @@ function OutpostContent() {
               <KpiCard
                 label="Tip Rate"
                 value={formatPercent(calcTipRate(summaries))}
+                subValue={`$${Math.round(summaries.reduce((s, d) => s + d.tips, 0)).toLocaleString()} collected`}
                 hint={HINTS.tipRate}
                 accentColor="border-outpost-black"
               />
               <KpiCard
                 label="Manual Discounts"
                 value={formatPercent(calcDiscountRate(summaries))}
+                subValue={`$${Math.round(summaries.reduce((s, d) => s + Math.abs(d.discounts), 0)).toLocaleString()} given away`}
                 hint={HINTS.manualDiscounts}
                 accentColor="border-outpost-black"
               />

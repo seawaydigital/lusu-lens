@@ -9,6 +9,7 @@ import {
   calcTotalTransactions, calcATV, calcTipRate, calcDiscountRate,
   formatCurrency, formatPercent,
 } from '@/lib/metrics/sharedMetrics'
+import { calcFoodAttachRate } from '@/lib/metrics/studyMetrics'
 import KpiCard from '@/components/shared/KpiCard'
 import MonthSelector from '@/components/shared/MonthSelector'
 import DataQualityBanner from '@/components/shared/DataQualityBanner'
@@ -25,6 +26,7 @@ import HotColdSplit from '@/components/study/HotColdSplit'
 import FoodAttachRate from '@/components/study/FoodAttachRate'
 import SizeDistribution from '@/components/study/SizeDistribution'
 import SeasonalItemTracker from '@/components/study/SeasonalItemTracker'
+import AutoInsights from '@/components/shared/AutoInsights'
 import ExportButton from '@/components/shared/ExportButton'
 import MissingDataSection from '@/components/shared/MissingDataSection'
 import type { UploadRecord, DailySummary, ProductRecord } from '@/types'
@@ -148,6 +150,14 @@ function StudyContent() {
         : <DataQualityBannerGroup uploads={selectedUploads} />
       }
 
+      {/* Section: Key Insights */}
+      {hasSummary && (
+        <section id="insights">
+          <h2 className="text-lg font-semibold text-study-black mb-4 border-b border-study-gold/30 pb-2">Key Insights</h2>
+          <AutoInsights summaries={summaries} venue="study" />
+        </section>
+      )}
+
       {/* Section: Revenue */}
       <section id="revenue">
         <h2 className="text-lg font-semibold text-study-black mb-4 border-b border-study-gold/30 pb-2">Revenue</h2>
@@ -187,15 +197,25 @@ function StudyContent() {
               <KpiCard
                 label="Tip Rate"
                 value={formatPercent(calcTipRate(summaries))}
+                subValue={`$${Math.round(summaries.reduce((s, d) => s + d.tips, 0)).toLocaleString()} collected`}
                 hint={HINTS.tipRate}
                 accentColor="border-study-gold"
               />
               <KpiCard
                 label="Discount Rate"
                 value={formatPercent(calcDiscountRate(summaries))}
+                subValue={`$${Math.round(summaries.reduce((s, d) => s + Math.abs(d.discounts), 0)).toLocaleString()} given away`}
                 hint={HINTS.discountRate}
                 accentColor="border-study-gold"
               />
+              {hasProducts && (
+                <KpiCard
+                  label="Food Attach Rate"
+                  value={`${calcFoodAttachRate(products).toFixed(1)}%`}
+                  hint="Percentage of total sales that came from food items. Higher attach rate means more customers are pairing food with their drinks — a key upsell opportunity."
+                  accentColor="border-study-gold"
+                />
+              )}
             </div>
             <DailyTrendChart summaries={summaries} accentColor="#C4A952" />
           </>

@@ -2,7 +2,7 @@
 
 import {
   LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip,
-  ResponsiveContainer,
+  ResponsiveContainer, ReferenceLine,
 } from 'recharts'
 import type { DailySummary } from '@/types'
 import type { EventDay } from '@/lib/metrics/eventDetector'
@@ -21,6 +21,10 @@ export default function DailyTrendChart({
   showRollingAvg = false,
 }: DailyTrendChartProps) {
   const eventDates = new Set(eventDays.map(e => e.date))
+
+  const avgGross = summaries.length > 0
+    ? Math.round(summaries.reduce((sum, s) => sum + s.grossSales, 0) / summaries.length)
+    : 0
 
   const sorted = [...summaries].sort(
     (a, b) => a.date.localeCompare(b.date)
@@ -119,6 +123,18 @@ export default function DailyTrendChart({
               name="7-day Avg"
             />
           )}
+          <ReferenceLine
+            y={avgGross}
+            stroke="#9CA3AF"
+            strokeDasharray="4 4"
+            strokeWidth={1}
+            label={{
+              value: `Avg ${avgGross >= 1000 ? `$${(avgGross / 1000).toFixed(1)}k` : `$${avgGross}`}`,
+              position: 'insideTopRight',
+              fontSize: 10,
+              fill: '#9CA3AF',
+            }}
+          />
         </LineChart>
       </ResponsiveContainer>
     </div>
