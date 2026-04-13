@@ -9,6 +9,8 @@ import Link from 'next/link'
 export default function ManagePage() {
   const [uploads, setUploads] = useState<UploadRecord[]>([])
   const [confirmDelete, setConfirmDelete] = useState<string | null>(null)
+  const [confirmDeleteAll, setConfirmDeleteAll] = useState(false)
+  const [deletingAll, setDeletingAll] = useState(false)
 
   useEffect(() => {
     initDB().then(() => getUploads().then(setUploads))
@@ -21,14 +23,54 @@ export default function ManagePage() {
     setConfirmDelete(null)
   }
 
+  async function handleDeleteAll() {
+    setDeletingAll(true)
+    for (const upload of uploads) {
+      await deleteUploadData(upload.venue, upload.year, upload.month)
+    }
+    setUploads([])
+    setConfirmDeleteAll(false)
+    setDeletingAll(false)
+  }
+
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <h1 className="text-2xl font-bold text-lusu-navy">Manage Uploads</h1>
-        <Link href="/" className="flex items-center gap-2 px-4 py-2 bg-lusu-cyan text-white rounded-lg text-sm font-medium hover:bg-lusu-cyan/90">
-          <Upload size={16} />
-          Upload new files
-        </Link>
+        <div className="flex items-center gap-2">
+          {uploads.length > 0 && (
+            confirmDeleteAll ? (
+              <div className="flex items-center gap-2">
+                <span className="text-sm text-red-600">Delete all {uploads.length} uploads?</span>
+                <button
+                  onClick={handleDeleteAll}
+                  disabled={deletingAll}
+                  className="px-3 py-1.5 bg-red-600 text-white rounded-lg text-sm font-medium disabled:opacity-50"
+                >
+                  {deletingAll ? 'Deleting…' : 'Confirm'}
+                </button>
+                <button
+                  onClick={() => setConfirmDeleteAll(false)}
+                  className="px-3 py-1.5 bg-gray-200 rounded-lg text-sm"
+                >
+                  Cancel
+                </button>
+              </div>
+            ) : (
+              <button
+                onClick={() => setConfirmDeleteAll(true)}
+                className="flex items-center gap-2 px-4 py-2 border border-red-200 text-red-600 rounded-lg text-sm font-medium hover:bg-red-50 transition-colors"
+              >
+                <Trash2 size={15} />
+                Delete all
+              </button>
+            )
+          )}
+          <Link href="/" className="flex items-center gap-2 px-4 py-2 bg-lusu-cyan text-white rounded-lg text-sm font-medium hover:bg-lusu-cyan/90">
+            <Upload size={16} />
+            Upload new files
+          </Link>
+        </div>
       </div>
 
       {uploads.length === 0 ? (
