@@ -3,6 +3,7 @@
 import { useEffect, useState, Suspense } from 'react'
 import { useSearchParams } from 'next/navigation'
 import Image from 'next/image'
+import Link from 'next/link'
 import { initDB, getUploads, getSummaries, getProducts } from '@/lib/db'
 import {
   calcGrossRevenue, calcNetRevenue, calcAvgRevenuePerDay,
@@ -103,7 +104,7 @@ function StudyContent() {
     return (
       <div className="flex flex-col items-center justify-center py-20 gap-3 text-center">
         <p className="text-gray-400 text-sm">No Study data uploaded yet.</p>
-        <a href="/" className="text-sm font-medium text-lusu-cyan hover:underline">Import your first month →</a>
+        <Link href="/" className="text-sm font-medium text-lusu-cyan hover:underline">Import your first month →</Link>
       </div>
     )
   }

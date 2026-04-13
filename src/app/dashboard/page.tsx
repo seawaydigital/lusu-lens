@@ -2,6 +2,7 @@
 
 import { useEffect, useState, Suspense } from 'react'
 import { useSearchParams } from 'next/navigation'
+import Link from 'next/link'
 import { initDB, getUploads, getSummaries } from '@/lib/db'
 import {
   calcNetRevenue, calcAvgRevenuePerDay,
@@ -97,9 +98,9 @@ function OverviewContent() {
     return (
       <div className="flex flex-col items-center justify-center py-20 gap-3 text-center">
         <p className="text-gray-400 text-sm">No data uploaded yet.</p>
-        <a href="/" className="text-sm font-medium text-lusu-cyan hover:underline">
+        <Link href="/" className="text-sm font-medium text-lusu-cyan hover:underline">
           Import your first month →
-        </a>
+        </Link>
       </div>
     )
   }
