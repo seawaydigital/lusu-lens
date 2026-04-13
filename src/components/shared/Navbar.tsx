@@ -11,7 +11,7 @@ const NAV_ITEMS = [
   { href: '/dashboard',          label: 'Overview',    icon: LayoutDashboard },
   { href: '/dashboard/study',    label: 'The Study',   icon: Coffee },
   { href: '/dashboard/outpost',  label: 'The Outpost', icon: Zap },
-  { href: '/compare',            label: 'Compare',     icon: TrendingUp },
+  { href: '/compare',            label: 'Trends',      icon: TrendingUp },
   { href: '/manage',             label: 'Manage',      icon: SlidersHorizontal },
 ]
 
