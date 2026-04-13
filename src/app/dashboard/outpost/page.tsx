@@ -141,15 +141,14 @@ function OutpostContent() {
       {/* Header */}
       <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
         <div className="hidden md:block md:w-48" />
-        <div className="flex flex-col items-center gap-2">
+        <div className="flex flex-col items-center">
           <Image
             src="/lusu-lens/logos/outpost.png"
             alt="The Outpost"
-            width={88}
-            height={88}
-            className="rounded-xl object-contain"
+            width={160}
+            height={160}
+            className="object-contain"
           />
-          <h1 className="text-2xl font-bold text-outpost-black">The Outpost Campus Pub</h1>
         </div>
         <div className="flex items-center justify-center gap-3 md:w-48 md:justify-end">
           <MonthSelector uploads={uploads} venue="outpost" />
