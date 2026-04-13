@@ -7,3 +7,22 @@
     @apply antialiased;
   }
 }
+
+@media print {
+  nav,
+  .export-button,
+  select,
+  button {
+    display: none !important;
+  }
+
+  main {
+    max-width: 100% !important;
+    padding: 0 !important;
+  }
+
+  .shadow-sm {
+    box-shadow: none !important;
+    border: 1px solid #e5e7eb !important;
+  }
+}
