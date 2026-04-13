@@ -17,6 +17,20 @@ export interface TransactionRecord {
   total: number
 }
 
+export interface DaypartRecord {
+  name: string    // e.g. 'BREAKFAST', 'LUNCH', 'DINNER/LATE NIGHT'
+  qty: number
+  guests: number
+  net: number
+}
+
+export interface SectionRecord {
+  name: string    // e.g. 'COFFEE', 'TEA & HOT BEVERAGES', 'BEER BOTTLES/CANS'
+  qty: number
+  net: number
+  gross: number
+}
+
 export interface DailySummary {
   date: string
   venue: 'study' | 'outpost'
@@ -29,6 +43,9 @@ export interface DailySummary {
   grossReceipts: number
   totalTransactions: number
   transactions: TransactionRecord[]
+  dayparts?: DaypartRecord[]
+  sections?: SectionRecord[]
+  guestCount?: number
 }
 
 export interface UploadRecord {

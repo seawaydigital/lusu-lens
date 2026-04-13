@@ -1,5 +1,5 @@
 import * as XLSX from 'xlsx'
-import type { DailySummary, TransactionRecord, Venue } from '@/types'
+import type { DailySummary, TransactionRecord, DaypartRecord, SectionRecord, Venue } from '@/types'
 
 export function parseSummaryFile(
   buffer: ArrayBuffer,
@@ -27,6 +27,7 @@ export function parseSummaryFile(
       return row ? parseFloat(row[1]) || 0 : 0
     }
 
+    // --- Transactions ---
     const typeRowIndex = rows.findIndex(
       r => String(r[0] ?? '').trim() === 'Type'
     )
@@ -57,6 +58,65 @@ export function parseSummaryFile(
       }
     }
 
+    // --- Dayparts ---
+    const daypartsHeaderIdx = rows.findIndex(
+      r => String(r[0] ?? '').trim() === 'DAYPARTS'
+    )
+    const dayparts: DaypartRecord[] = []
+    if (daypartsHeaderIdx !== -1) {
+      // skip the label row and the column header row
+      let i = daypartsHeaderIdx + 2
+      while (i < rows.length) {
+        const r = rows[i]
+        const name = String(r?.[0] ?? '').trim()
+        if (!name || name === 'Total') break
+        dayparts.push({
+          name,
+          qty: parseFloat(r[1]) || 0,
+          guests: parseFloat(r[3]) || 0,
+          net: parseFloat(r[4]) || 0,
+        })
+        i++
+      }
+    }
+
+    // --- Sections ---
+    const sectionsHeaderIdx = rows.findIndex(
+      r => String(r[0] ?? '').trim() === 'SECTIONS'
+    )
+    const sections: SectionRecord[] = []
+    if (sectionsHeaderIdx !== -1) {
+      let i = sectionsHeaderIdx + 2
+      while (i < rows.length) {
+        const r = rows[i]
+        const name = String(r?.[0] ?? '').trim()
+        if (!name || name === 'Total') break
+        sections.push({
+          name,
+          qty: parseFloat(r[1]) || 0,
+          net: parseFloat(r[2]) || 0,
+          gross: parseFloat(r[3]) || 0,
+        })
+        i++
+      }
+    }
+
+    // --- Guest count from CLOSED TICKETS ---
+    const closedTicketsIdx = rows.findIndex(
+      r => String(r[0] ?? '').trim() === 'CLOSED TICKETS'
+    )
+    let guestCount: number | undefined
+    if (closedTicketsIdx !== -1) {
+      const searchEnd = Math.min(closedTicketsIdx + 8, rows.length)
+      for (let i = closedTicketsIdx + 1; i < searchEnd; i++) {
+        const r = rows[i]
+        if (String(r?.[0] ?? '').trim() === 'Guests') {
+          guestCount = parseFloat(r[1]) || undefined
+          break
+        }
+      }
+    }
+
     summaries.push({
       date: isoDate,
       venue,
@@ -69,6 +129,9 @@ export function parseSummaryFile(
       grossReceipts: getVal('Gross Receipts'),
       totalTransactions,
       transactions,
+      dayparts: dayparts.length > 0 ? dayparts : undefined,
+      sections: sections.length > 0 ? sections : undefined,
+      guestCount,
     })
   }
 

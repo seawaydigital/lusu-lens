@@ -17,6 +17,9 @@ import CategoryDonut from '@/components/shared/CategoryDonut'
 import TopItemsChart from '@/components/shared/TopItemsChart'
 import DowChart from '@/components/shared/DowChart'
 import PaymentMethodChart from '@/components/shared/PaymentMethodChart'
+import DaypartChart from '@/components/shared/DaypartChart'
+import SectionMixChart from '@/components/shared/SectionMixChart'
+import WeeklyView from '@/components/shared/WeeklyView'
 import HotColdSplit from '@/components/study/HotColdSplit'
 import FoodAttachRate from '@/components/study/FoodAttachRate'
 import SizeDistribution from '@/components/study/SizeDistribution'
@@ -25,16 +28,25 @@ import ExportButton from '@/components/shared/ExportButton'
 import MissingDataSection from '@/components/shared/MissingDataSection'
 import type { UploadRecord, DailySummary, ProductRecord } from '@/types'
 
+// Plain-language explanations for metrics that may not be obvious to all staff
+const HINTS = {
+  grossRevenue: 'Total sales before any discounts or adjustments. This is the full "sticker price" of everything sold.',
+  netRevenue: 'Revenue after staff discounts and adjustments are removed. This is the actual amount collected from customers.',
+  avgDay: 'Average net revenue per day the café was open.',
+  transactions: 'Total number of customer orders processed — essentially how many times the till rang.',
+  atv: 'Average Transaction Value — the average amount each customer spent per visit. Calculated by dividing total revenue by number of orders.',
+  tipRate: 'Tips as a percentage of net revenue. Shows how generously customers are tipping on average through the POS system.',
+  discountRate: 'Staff-applied discounts as a percentage of gross sales — includes voids, comps, and any manual price reductions.',
+}
+
 function StudyContent() {
   const searchParams = useSearchParams()
   const [uploads, setUploads] = useState<UploadRecord[]>([])
   const [summaries, setSummaries] = useState<DailySummary[]>([])
   const [products, setProducts] = useState<ProductRecord[]>([])
-  const [selectedYear, setSelectedYear] = useState<number>(0)
-  const [selectedMonth, setSelectedMonth] = useState<number>(0)
   const [loading, setLoading] = useState(true)
 
-  const monthParam = searchParams.get('month')
+  const monthsParam = searchParams.get('months')
 
   useEffect(() => {
     async function load() {
@@ -43,32 +55,38 @@ function StudyContent() {
       const allUploads = await getUploads()
       setUploads(allUploads)
 
-      const studyUploads = allUploads.filter(u => u.venue === 'study')
+      const studyUploads = allUploads
+        .filter(u => u.venue === 'study')
+        .sort((a, b) => (b.year * 100 + b.month) - (a.year * 100 + a.month))
       if (studyUploads.length === 0) { setLoading(false); return }
 
-      let year: number, month: number
-      if (monthParam) {
-        [year, month] = monthParam.split('-').map(Number)
+      const allKeys = studyUploads.map(u => `${u.year}-${u.month}`)
+      const defaultKey = allKeys[0]
+
+      let selectedKeys: string[]
+      if (monthsParam) {
+        selectedKeys = monthsParam.split(',').filter(k => allKeys.includes(k))
+        if (selectedKeys.length === 0) selectedKeys = [defaultKey]
       } else {
-        const latest = studyUploads.sort(
-          (a, b) => (b.year * 100 + b.month) - (a.year * 100 + a.month)
-        )[0]
-        year = latest.year
-        month = latest.month
+        selectedKeys = [defaultKey]
       }
 
-      const [s, p] = await Promise.all([
-        getSummaries('study', year, month),
-        getProducts('study', year, month),
-      ])
-      setSummaries(s)
-      setProducts(p)
-      setSelectedYear(year)
-      setSelectedMonth(month)
+      const results = await Promise.all(
+        selectedKeys.map(k => {
+          const [y, m] = k.split('-').map(Number)
+          return Promise.all([
+            getSummaries('study', y, m),
+            getProducts('study', y, m),
+          ])
+        })
+      )
+
+      setSummaries(results.flatMap(([s]) => s))
+      setProducts(results.flatMap(([, p]) => p))
       setLoading(false)
     }
     load()
-  }, [monthParam])
+  }, [monthsParam])
 
   if (loading) return <div className="text-center py-12 text-gray-500">Loading...</div>
   if (summaries.length === 0 && products.length === 0) {
@@ -77,32 +95,56 @@ function StudyContent() {
 
   const hasSummary = summaries.length > 0
   const hasProducts = products.length > 0
-  const currentUpload = uploads.find(u => u.venue === 'study' && u.year === selectedYear && u.month === selectedMonth)
-  const studyUploads = uploads.filter(u => u.venue === 'study')
+
+  const studyUploads = uploads
+    .filter(u => u.venue === 'study')
+    .sort((a, b) => (b.year * 100 + b.month) - (a.year * 100 + a.month))
+  const allKeys = studyUploads.map(u => `${u.year}-${u.month}`)
+  const defaultKey = allKeys[0] ?? ''
+  const activeKeys = monthsParam
+    ? monthsParam.split(',').filter(k => allKeys.includes(k))
+    : defaultKey ? [defaultKey] : []
+  const selectedUploads = studyUploads.filter(u =>
+    activeKeys.includes(`${u.year}-${u.month}`)
+  )
+
+  const monthLabel = activeKeys.length === 1
+    ? (() => {
+        const [y, m] = activeKeys[0].split('-').map(Number)
+        return new Date(y, m - 1).toLocaleString('default', { month: 'long', year: 'numeric' })
+      })()
+    : activeKeys.length > 1 ? `${activeKeys.length} months` : ''
 
   return (
     <div className="space-y-8" id="study-dashboard">
       {/* Header */}
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-3">
-          <Image src="/lusu-lens/logos/study.png" alt="The Study" width={48} height={48} className="rounded-lg" />
+      <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+        <div className="hidden md:block md:w-48" />
+        <div className="flex flex-col items-center gap-2">
+          <Image
+            src="/lusu-lens/logos/study.png"
+            alt="The Study"
+            width={88}
+            height={88}
+            className="rounded-xl object-contain"
+          />
           <h1 className="text-2xl font-bold text-study-black">The Study Coffeehouse</h1>
         </div>
-        <div className="flex items-center gap-3">
+        <div className="flex items-center justify-center gap-3 md:w-48 md:justify-end">
           <MonthSelector uploads={uploads} venue="study" />
           <ExportButton
             containerId="study-dashboard"
             venue="The Study"
-            monthYear={selectedMonth > 0 ? new Date(selectedYear, selectedMonth - 1).toLocaleString('default', { month: 'long', year: 'numeric' }) : ''}
+            monthYear={monthLabel}
             summaries={summaries}
             products={products}
           />
         </div>
       </div>
 
-      {currentUpload && (
-        <DataQualityBanner flags={currentUpload.dataQualityFlags} uploadId={currentUpload.id} />
-      )}
+      {selectedUploads.map(u => (
+        <DataQualityBanner key={u.id} flags={u.dataQualityFlags} uploadId={u.id} />
+      ))}
 
       {/* Section: Revenue */}
       <section id="revenue">
@@ -110,13 +152,48 @@ function StudyContent() {
         {hasSummary ? (
           <>
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
-              <KpiCard label="Gross Revenue" value={formatCurrency(calcGrossRevenue(summaries))} accentColor="border-study-gold" />
-              <KpiCard label="Net Revenue" value={formatCurrency(calcNetRevenue(summaries))} accentColor="border-study-gold" />
-              <KpiCard label="Avg/Day" value={formatCurrency(calcAvgRevenuePerDay(summaries))} accentColor="border-study-gold" />
-              <KpiCard label="Transactions" value={calcTotalTransactions(summaries).toLocaleString()} accentColor="border-study-gold" />
-              <KpiCard label="ATV" value={`$${calcATV(summaries).toFixed(2)}`} accentColor="border-study-gold" />
-              <KpiCard label="Tip Rate" value={formatPercent(calcTipRate(summaries))} accentColor="border-study-gold" />
-              <KpiCard label="Discount Rate" value={formatPercent(calcDiscountRate(summaries))} accentColor="border-study-gold" />
+              <KpiCard
+                label="Gross Revenue"
+                value={formatCurrency(calcGrossRevenue(summaries))}
+                hint={HINTS.grossRevenue}
+                accentColor="border-study-gold"
+              />
+              <KpiCard
+                label="Net Revenue"
+                value={formatCurrency(calcNetRevenue(summaries))}
+                hint={HINTS.netRevenue}
+                accentColor="border-study-gold"
+              />
+              <KpiCard
+                label="Avg / Day"
+                value={formatCurrency(calcAvgRevenuePerDay(summaries))}
+                hint={HINTS.avgDay}
+                accentColor="border-study-gold"
+              />
+              <KpiCard
+                label="Orders"
+                value={calcTotalTransactions(summaries).toLocaleString()}
+                hint={HINTS.transactions}
+                accentColor="border-study-gold"
+              />
+              <KpiCard
+                label="Avg Order Value"
+                value={`$${calcATV(summaries).toFixed(2)}`}
+                hint={HINTS.atv}
+                accentColor="border-study-gold"
+              />
+              <KpiCard
+                label="Tip Rate"
+                value={formatPercent(calcTipRate(summaries))}
+                hint={HINTS.tipRate}
+                accentColor="border-study-gold"
+              />
+              <KpiCard
+                label="Discount Rate"
+                value={formatPercent(calcDiscountRate(summaries))}
+                hint={HINTS.discountRate}
+                accentColor="border-study-gold"
+              />
             </div>
             <DailyTrendChart summaries={summaries} accentColor="#C4A952" />
           </>
@@ -124,6 +201,17 @@ function StudyContent() {
           <MissingDataSection fileType="summary" venue="study" />
         )}
       </section>
+
+      {/* Section: Weekly Patterns */}
+      {hasSummary && (
+        <section id="weekly">
+          <h2 className="text-lg font-semibold text-study-black mb-4 border-b border-study-gold/30 pb-2">Weekly Performance</h2>
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            <WeeklyView summaries={summaries} accentColor="#C4A952" />
+            <DaypartChart summaries={summaries} />
+          </div>
+        </section>
+      )}
 
       {/* Section: Products */}
       <section id="products">
@@ -137,6 +225,14 @@ function StudyContent() {
           <MissingDataSection fileType="products" venue="study" />
         )}
       </section>
+
+      {/* Section: Menu Categories */}
+      {hasSummary && (
+        <section id="menu-categories">
+          <h2 className="text-lg font-semibold text-study-black mb-4 border-b border-study-gold/30 pb-2">Menu Category Breakdown</h2>
+          <SectionMixChart summaries={summaries} venue="study" />
+        </section>
+      )}
 
       {/* Section: Patterns */}
       <section id="patterns">

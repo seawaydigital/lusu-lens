@@ -18,26 +18,40 @@ import CategoryDonut from '@/components/shared/CategoryDonut'
 import TopItemsChart from '@/components/shared/TopItemsChart'
 import DowChart from '@/components/shared/DowChart'
 import PaymentMethodChart from '@/components/shared/PaymentMethodChart'
+import DaypartChart from '@/components/shared/DaypartChart'
+import SectionMixChart from '@/components/shared/SectionMixChart'
+import WeeklyView from '@/components/shared/WeeklyView'
 import EventDayAnalysis from '@/components/outpost/EventDayAnalysis'
 import AlcoholFoodSplit from '@/components/outpost/AlcoholFoodSplit'
 import DraftVsPackaged from '@/components/outpost/DraftVsPackaged'
 import HappyHourImpact from '@/components/outpost/HappyHourImpact'
 import FridayWingsTracker from '@/components/outpost/FridayWingsTracker'
 import CateringRevenue from '@/components/outpost/CateringRevenue'
+import DoorRevenueTracker from '@/components/outpost/DoorRevenueTracker'
 import ExportButton from '@/components/shared/ExportButton'
 import MissingDataSection from '@/components/shared/MissingDataSection'
 import type { UploadRecord, DailySummary, ProductRecord } from '@/types'
+
+// Plain-language explanations for metrics that may not be obvious to all staff
+const HINTS = {
+  grossRevenue: 'Total sales before any discounts or adjustments. This is the full "sticker price" of everything sold.',
+  netRevenue: 'Revenue after discounts and adjustments are removed. This is the actual amount collected from customers.',
+  avgDay: 'Average net revenue per operating day. The "Event-adjusted" figure removes high-revenue event nights so you can see what a typical regular night looks like.',
+  transactions: 'Total number of customer orders (tabs/tickets) processed. On event nights this includes cover charges.',
+  atv: 'Average Transaction Value — the average amount spent per order or tab. On event nights this is skewed upward by cover charges.',
+  tipRate: 'Tips as a percentage of net revenue. Cash tips paid directly are not tracked through the POS, so this figure reflects card-tipped amounts only.',
+  manualDiscounts: 'Staff-applied discounts as a percentage of gross sales — includes voids, comps, and manually reduced prices.',
+  happyHour: 'Automatic Happy Hour price reductions applied by the POS system, shown as a percentage of gross sales.',
+}
 
 function OutpostContent() {
   const searchParams = useSearchParams()
   const [uploads, setUploads] = useState<UploadRecord[]>([])
   const [summaries, setSummaries] = useState<DailySummary[]>([])
   const [products, setProducts] = useState<ProductRecord[]>([])
-  const [selectedYear, setSelectedYear] = useState<number>(0)
-  const [selectedMonth, setSelectedMonth] = useState<number>(0)
   const [loading, setLoading] = useState(true)
 
-  const monthParam = searchParams.get('month')
+  const monthsParam = searchParams.get('months')
 
   useEffect(() => {
     async function load() {
@@ -46,32 +60,38 @@ function OutpostContent() {
       const allUploads = await getUploads()
       setUploads(allUploads)
 
-      const outpostUploads = allUploads.filter(u => u.venue === 'outpost')
+      const outpostUploads = allUploads
+        .filter(u => u.venue === 'outpost')
+        .sort((a, b) => (b.year * 100 + b.month) - (a.year * 100 + a.month))
       if (outpostUploads.length === 0) { setLoading(false); return }
 
-      let year: number, month: number
-      if (monthParam) {
-        [year, month] = monthParam.split('-').map(Number)
+      const allKeys = outpostUploads.map(u => `${u.year}-${u.month}`)
+      const defaultKey = allKeys[0]
+
+      let selectedKeys: string[]
+      if (monthsParam) {
+        selectedKeys = monthsParam.split(',').filter(k => allKeys.includes(k))
+        if (selectedKeys.length === 0) selectedKeys = [defaultKey]
       } else {
-        const latest = outpostUploads.sort(
-          (a, b) => (b.year * 100 + b.month) - (a.year * 100 + a.month)
-        )[0]
-        year = latest.year
-        month = latest.month
+        selectedKeys = [defaultKey]
       }
 
-      const [s, p] = await Promise.all([
-        getSummaries('outpost', year, month),
-        getProducts('outpost', year, month),
-      ])
-      setSummaries(s)
-      setProducts(p)
-      setSelectedYear(year)
-      setSelectedMonth(month)
+      const results = await Promise.all(
+        selectedKeys.map(k => {
+          const [y, m] = k.split('-').map(Number)
+          return Promise.all([
+            getSummaries('outpost', y, m),
+            getProducts('outpost', y, m),
+          ])
+        })
+      )
+
+      setSummaries(results.flatMap(([s]) => s))
+      setProducts(results.flatMap(([, p]) => p))
       setLoading(false)
     }
     load()
-  }, [monthParam])
+  }, [monthsParam])
 
   if (loading) return <div className="text-center py-12 text-gray-500">Loading...</div>
   if (summaries.length === 0 && products.length === 0) {
@@ -82,37 +102,70 @@ function OutpostContent() {
   const hasProducts = products.length > 0
   const eventDays = hasSummary ? detectEventDays(summaries) : []
   const eventDates = new Set(eventDays.map(e => e.date))
-  const currentUpload = uploads.find(u => u.venue === 'outpost' && u.year === selectedYear && u.month === selectedMonth)
+
+  const outpostUploads = uploads
+    .filter(u => u.venue === 'outpost')
+    .sort((a, b) => (b.year * 100 + b.month) - (a.year * 100 + a.month))
+  const allKeys = outpostUploads.map(u => `${u.year}-${u.month}`)
+  const defaultKey = allKeys[0] ?? ''
+  const activeKeys = monthsParam
+    ? monthsParam.split(',').filter(k => allKeys.includes(k))
+    : defaultKey ? [defaultKey] : []
+  const selectedUploads = outpostUploads.filter(u =>
+    activeKeys.includes(`${u.year}-${u.month}`)
+  )
+
+  const monthLabel = activeKeys.length === 1
+    ? (() => {
+        const [y, m] = activeKeys[0].split('-').map(Number)
+        return new Date(y, m - 1).toLocaleString('default', { month: 'long', year: 'numeric' })
+      })()
+    : activeKeys.length > 1 ? `${activeKeys.length} months` : ''
 
   return (
     <div className="space-y-8" id="outpost-dashboard">
       {/* Header */}
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-3">
-          <Image src="/lusu-lens/logos/outpost.png" alt="The Outpost" width={48} height={48} className="rounded-lg" />
+      <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+        <div className="hidden md:block md:w-48" />
+        <div className="flex flex-col items-center gap-2">
+          <Image
+            src="/lusu-lens/logos/outpost.png"
+            alt="The Outpost"
+            width={88}
+            height={88}
+            className="rounded-xl object-contain"
+          />
           <h1 className="text-2xl font-bold text-outpost-black">The Outpost Campus Pub</h1>
         </div>
-        <div className="flex items-center gap-3">
+        <div className="flex items-center justify-center gap-3 md:w-48 md:justify-end">
           <MonthSelector uploads={uploads} venue="outpost" />
           <ExportButton
             containerId="outpost-dashboard"
             venue="The Outpost"
-            monthYear={selectedMonth > 0 ? new Date(selectedYear, selectedMonth - 1).toLocaleString('default', { month: 'long', year: 'numeric' }) : ''}
+            monthYear={monthLabel}
             summaries={summaries}
             products={products}
           />
         </div>
       </div>
 
-      {currentUpload && (
-        <DataQualityBanner flags={currentUpload.dataQualityFlags} uploadId={currentUpload.id} />
-      )}
+      {selectedUploads.map(u => (
+        <DataQualityBanner key={u.id} flags={u.dataQualityFlags} uploadId={u.id} />
+      ))}
 
-      {/* SECTION 1: EVENT ANALYSIS */}
+      {/* SECTION 1: EVENTS */}
       <section id="event-analysis">
-        <h2 className="text-lg font-semibold mb-4 border-b border-outpost-black/20 pb-2">Event Analysis</h2>
-        {hasSummary ? (
-          <EventDayAnalysis summaries={summaries} eventDays={eventDays} />
+        <h2 className="text-lg font-semibold mb-4 border-b border-outpost-black/20 pb-2">Event Nights</h2>
+        {hasSummary && hasProducts ? (
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            <EventDayAnalysis summaries={summaries} eventDays={eventDays} />
+            <DoorRevenueTracker products={products} summaries={summaries} />
+          </div>
+        ) : hasSummary ? (
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            <EventDayAnalysis summaries={summaries} eventDays={eventDays} />
+            <MissingDataSection fileType="products" venue="outpost" />
+          </div>
         ) : (
           <MissingDataSection fileType="summary" venue="outpost" />
         )}
@@ -124,19 +177,55 @@ function OutpostContent() {
         {hasSummary ? (
           <>
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
-              <KpiCard label="Gross Revenue" value={formatCurrency(calcGrossRevenue(summaries))} accentColor="border-outpost-black" />
-              <KpiCard label="Net Revenue" value={formatCurrency(calcNetRevenue(summaries))} accentColor="border-outpost-black" />
               <KpiCard
-                label="Avg/Day"
-                value={formatCurrency(calcAvgRevenuePerDay(summaries))}
-                subValue={`Event-adjusted: ${formatCurrency(calcAvgRevenuePerDay(summaries, eventDates))}`}
+                label="Gross Revenue"
+                value={formatCurrency(calcGrossRevenue(summaries))}
+                hint={HINTS.grossRevenue}
                 accentColor="border-outpost-black"
               />
-              <KpiCard label="Transactions" value={calcTotalTransactions(summaries).toLocaleString()} accentColor="border-outpost-black" />
-              <KpiCard label="ATV" value={`$${calcATV(summaries).toFixed(2)}`} accentColor="border-outpost-black" />
-              <KpiCard label="Tip Rate" value={formatPercent(calcTipRate(summaries))} accentColor="border-outpost-black" />
-              <KpiCard label="Manual Discounts" value={formatPercent(calcDiscountRate(summaries))} accentColor="border-outpost-black" />
-              <KpiCard label="Happy Hour Discounts" value={formatPercent(calcAutoPricingRate(summaries))} accentColor="border-outpost-black" />
+              <KpiCard
+                label="Net Revenue"
+                value={formatCurrency(calcNetRevenue(summaries))}
+                hint={HINTS.netRevenue}
+                accentColor="border-outpost-black"
+              />
+              <KpiCard
+                label="Avg / Day"
+                value={formatCurrency(calcAvgRevenuePerDay(summaries))}
+                subValue={`Event-adjusted: ${formatCurrency(calcAvgRevenuePerDay(summaries, eventDates))}`}
+                hint={HINTS.avgDay}
+                accentColor="border-outpost-black"
+              />
+              <KpiCard
+                label="Orders"
+                value={calcTotalTransactions(summaries).toLocaleString()}
+                hint={HINTS.transactions}
+                accentColor="border-outpost-black"
+              />
+              <KpiCard
+                label="Avg Order Value"
+                value={`$${calcATV(summaries).toFixed(2)}`}
+                hint={HINTS.atv}
+                accentColor="border-outpost-black"
+              />
+              <KpiCard
+                label="Tip Rate"
+                value={formatPercent(calcTipRate(summaries))}
+                hint={HINTS.tipRate}
+                accentColor="border-outpost-black"
+              />
+              <KpiCard
+                label="Manual Discounts"
+                value={formatPercent(calcDiscountRate(summaries))}
+                hint={HINTS.manualDiscounts}
+                accentColor="border-outpost-black"
+              />
+              <KpiCard
+                label="Happy Hour Discounts"
+                value={formatPercent(calcAutoPricingRate(summaries))}
+                hint={HINTS.happyHour}
+                accentColor="border-outpost-black"
+              />
             </div>
             <DailyTrendChart
               summaries={summaries}
@@ -150,7 +239,18 @@ function OutpostContent() {
         )}
       </section>
 
-      {/* SECTION 3: Products */}
+      {/* SECTION 3: Weekly Patterns */}
+      {hasSummary && (
+        <section id="weekly">
+          <h2 className="text-lg font-semibold mb-4 border-b border-outpost-black/20 pb-2">Weekly Performance</h2>
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            <WeeklyView summaries={summaries} accentColor="#0D0D0D" />
+            <DaypartChart summaries={summaries} />
+          </div>
+        </section>
+      )}
+
+      {/* SECTION 4: Products */}
       <section id="products">
         <h2 className="text-lg font-semibold mb-4 border-b border-outpost-black/20 pb-2">Products</h2>
         {hasProducts ? (
@@ -163,7 +263,15 @@ function OutpostContent() {
         )}
       </section>
 
-      {/* SECTION 4: Alcohol & Beverage */}
+      {/* SECTION 5: Menu Categories */}
+      {hasSummary && (
+        <section id="menu-categories">
+          <h2 className="text-lg font-semibold mb-4 border-b border-outpost-black/20 pb-2">Menu Category Breakdown</h2>
+          <SectionMixChart summaries={summaries} venue="outpost" />
+        </section>
+      )}
+
+      {/* SECTION 6: Alcohol & Beverage */}
       <section id="alcohol">
         <h2 className="text-lg font-semibold mb-4 border-b border-outpost-black/20 pb-2">Alcohol & Beverage</h2>
         {hasSummary || hasProducts ? (
@@ -178,7 +286,7 @@ function OutpostContent() {
         ) : null}
       </section>
 
-      {/* SECTION 5: Food */}
+      {/* SECTION 7: Food */}
       <section id="food">
         <h2 className="text-lg font-semibold mb-4 border-b border-outpost-black/20 pb-2">Food</h2>
         {hasProducts ? (
@@ -191,7 +299,7 @@ function OutpostContent() {
         )}
       </section>
 
-      {/* SECTION 6: Payment */}
+      {/* SECTION 8: Payment */}
       <section id="payment">
         <h2 className="text-lg font-semibold mb-4 border-b border-outpost-black/20 pb-2">Payment</h2>
         {hasSummary ? (

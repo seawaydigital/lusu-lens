@@ -1,9 +1,10 @@
-import { TrendingUp, TrendingDown, Minus } from 'lucide-react'
+import { TrendingUp, TrendingDown, Minus, HelpCircle } from 'lucide-react'
 
 interface KpiCardProps {
   label: string
   value: string
   subValue?: string
+  hint?: string
   trend?: {
     direction: 'up' | 'down' | 'neutral'
     value: string
@@ -16,6 +17,7 @@ export default function KpiCard({
   label,
   value,
   subValue,
+  hint,
   trend,
   flag,
   accentColor = 'border-lusu-cyan',
@@ -38,8 +40,16 @@ export default function KpiCard({
 
   return (
     <div className={`bg-white rounded-xl p-5 shadow-sm border-l-4 ${accentColor}`}>
-      <p className="text-sm font-medium text-gray-500 uppercase tracking-wide">
+      <p className="text-sm font-medium text-gray-500 uppercase tracking-wide flex items-center gap-1.5">
         {label}
+        {hint && (
+          <span className="group relative cursor-help shrink-0">
+            <HelpCircle size={13} className="text-gray-300 hover:text-gray-400 transition-colors" />
+            <span className="invisible group-hover:visible absolute z-50 bottom-full left-0 mb-1.5 w-60 bg-gray-900 text-white text-xs rounded-lg px-3 py-2 leading-relaxed shadow-xl normal-case tracking-normal font-normal whitespace-normal pointer-events-none">
+              {hint}
+            </span>
+          </span>
+        )}
       </p>
       <p className="text-2xl font-bold text-gray-900 mt-1">{value}</p>
       {subValue && (

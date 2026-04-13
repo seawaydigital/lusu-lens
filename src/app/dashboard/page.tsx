@@ -2,7 +2,6 @@
 
 import { useEffect, useState, Suspense } from 'react'
 import { useSearchParams } from 'next/navigation'
-import Image from 'next/image'
 import { initDB, getUploads, getSummaries } from '@/lib/db'
 import {
   calcNetRevenue, calcAvgRevenuePerDay,
@@ -22,7 +21,7 @@ function OverviewContent() {
   const [outpostSummaries, setOutpostSummaries] = useState<DailySummary[]>([])
   const [loading, setLoading] = useState(true)
 
-  const monthParam = searchParams.get('month')
+  const monthsParam = searchParams.get('months')
 
   useEffect(() => {
     async function load() {
@@ -31,30 +30,52 @@ function OverviewContent() {
       const allUploads = await getUploads()
       setUploads(allUploads)
 
-      let year: number, month: number
-      if (monthParam) {
-        [year, month] = monthParam.split('-').map(Number)
-      } else if (allUploads.length > 0) {
-        const latest = allUploads.sort(
-          (a, b) => (b.year * 100 + b.month) - (a.year * 100 + a.month)
-        )[0]
-        year = latest.year
-        month = latest.month
+      if (allUploads.length === 0) { setLoading(false); return }
+
+      const allKeys = Array.from(
+        new Set(allUploads.map(u => `${u.year}-${u.month}`))
+      ).sort((a, b) => {
+        const [ay, am] = a.split('-').map(Number)
+        const [by, bm] = b.split('-').map(Number)
+        return (by * 100 + bm) - (ay * 100 + am)
+      })
+      const defaultKey = allKeys[0]
+
+      let selectedKeys: string[]
+      if (monthsParam) {
+        selectedKeys = monthsParam.split(',').filter(k => allKeys.includes(k))
+        if (selectedKeys.length === 0) selectedKeys = [defaultKey]
       } else {
-        setLoading(false)
-        return
+        selectedKeys = [defaultKey]
       }
 
-      const [ss, os] = await Promise.all([
-        getSummaries('study', year, month),
-        getSummaries('outpost', year, month),
+      const studyUploads = allUploads.filter(u => u.venue === 'study')
+      const outpostUploads = allUploads.filter(u => u.venue === 'outpost')
+
+      const studyKeys = selectedKeys.filter(k =>
+        studyUploads.some(u => `${u.year}-${u.month}` === k)
+      )
+      const outpostKeys = selectedKeys.filter(k =>
+        outpostUploads.some(u => `${u.year}-${u.month}` === k)
+      )
+
+      const [studyResults, outpostResults] = await Promise.all([
+        Promise.all(studyKeys.map(k => {
+          const [y, m] = k.split('-').map(Number)
+          return getSummaries('study', y, m)
+        })),
+        Promise.all(outpostKeys.map(k => {
+          const [y, m] = k.split('-').map(Number)
+          return getSummaries('outpost', y, m)
+        })),
       ])
-      setStudySummaries(ss)
-      setOutpostSummaries(os)
+
+      setStudySummaries(studyResults.flat())
+      setOutpostSummaries(outpostResults.flat())
       setLoading(false)
     }
     load()
-  }, [monthParam])
+  }, [monthsParam])
 
   if (loading) {
     return <div className="text-center py-12 text-gray-500">Loading...</div>
@@ -102,10 +123,7 @@ function OverviewContent() {
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         {/* Study column */}
         <div className="space-y-4">
-          <div className="flex items-center gap-2 mb-2">
-            <Image src="/lusu-lens/logos/study.png" alt="The Study" width={36} height={36} className="rounded-lg" />
-            <h2 className="font-semibold text-study-black">The Study</h2>
-          </div>
+          <h2 className="font-semibold text-study-black">The Study</h2>
           <div className="grid grid-cols-2 gap-3">
             <KpiCard label="Net Revenue" value={formatCurrency(studyNet)} accentColor="border-study-gold" />
             <KpiCard label="Transactions" value={calcTotalTransactions(studySummaries).toLocaleString()} accentColor="border-study-gold" />
@@ -117,10 +135,7 @@ function OverviewContent() {
 
         {/* Outpost column */}
         <div className="space-y-4">
-          <div className="flex items-center gap-2 mb-2">
-            <Image src="/lusu-lens/logos/outpost.png" alt="The Outpost" width={36} height={36} className="rounded-lg" />
-            <h2 className="font-semibold text-outpost-black">The Outpost</h2>
-          </div>
+          <h2 className="font-semibold text-outpost-black">The Outpost</h2>
           <div className="grid grid-cols-2 gap-3">
             <KpiCard label="Net Revenue" value={formatCurrency(outpostNet)} accentColor="border-outpost-black" />
             <KpiCard label="Transactions" value={calcTotalTransactions(outpostSummaries).toLocaleString()} accentColor="border-outpost-black" />
