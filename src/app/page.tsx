@@ -215,6 +215,28 @@ export default function UploadPage() {
         </p>
       </div>
 
+      {/* File type explainer */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div className="bg-white rounded-xl p-5 shadow-sm border-l-4 border-lusu-navy">
+          <p className="font-semibold text-lusu-navy text-sm mb-1">Monthly Summary Sales</p>
+          <p className="text-xs text-gray-500 mb-2">Required for revenue metrics</p>
+          <ul className="text-xs text-gray-600 space-y-1">
+            <li className="flex items-center gap-1.5"><span className="w-1 h-1 rounded-full bg-lusu-navy shrink-0" />Daily gross & net sales, transactions</li>
+            <li className="flex items-center gap-1.5"><span className="w-1 h-1 rounded-full bg-lusu-navy shrink-0" />Tips, discounts, payment methods</li>
+            <li className="flex items-center gap-1.5"><span className="w-1 h-1 rounded-full bg-lusu-navy shrink-0" />Event day analysis, trends</li>
+          </ul>
+        </div>
+        <div className="bg-white rounded-xl p-5 shadow-sm border-l-4 border-lusu-cyan">
+          <p className="font-semibold text-lusu-navy text-sm mb-1">Product Sales</p>
+          <p className="text-xs text-gray-500 mb-2">Required for product breakdown</p>
+          <ul className="text-xs text-gray-600 space-y-1">
+            <li className="flex items-center gap-1.5"><span className="w-1 h-1 rounded-full bg-lusu-cyan shrink-0" />Item-level sales by category & size</li>
+            <li className="flex items-center gap-1.5"><span className="w-1 h-1 rounded-full bg-lusu-cyan shrink-0" />Top items, alcohol/food split</li>
+            <li className="flex items-center gap-1.5"><span className="w-1 h-1 rounded-full bg-lusu-cyan shrink-0" />Draft vs packaged, catering, wings</li>
+          </ul>
+        </div>
+      </div>
+
       {/* Drop zone */}
       <div
         onDragOver={e => e.preventDefault()}
@@ -226,7 +248,7 @@ export default function UploadPage() {
         <p className="text-lg font-medium text-lusu-navy">
           Drag and drop .xlsx files here
         </p>
-        <p className="text-sm text-gray-500 mt-1">or click to browse</p>
+        <p className="text-sm text-gray-500 mt-1">Drop both files together for a complete month — or upload one at a time</p>
         <input
           id="fileInput"
           type="file"

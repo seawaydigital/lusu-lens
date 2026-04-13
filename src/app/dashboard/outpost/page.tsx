@@ -25,6 +25,7 @@ import HappyHourImpact from '@/components/outpost/HappyHourImpact'
 import FridayWingsTracker from '@/components/outpost/FridayWingsTracker'
 import CateringRevenue from '@/components/outpost/CateringRevenue'
 import ExportButton from '@/components/shared/ExportButton'
+import MissingDataSection from '@/components/shared/MissingDataSection'
 import type { UploadRecord, DailySummary, ProductRecord } from '@/types'
 
 function OutpostContent() {
@@ -77,7 +78,9 @@ function OutpostContent() {
     return <div className="text-center py-12 text-gray-500">No Outpost data uploaded yet.</div>
   }
 
-  const eventDays = detectEventDays(summaries)
+  const hasSummary = summaries.length > 0
+  const hasProducts = products.length > 0
+  const eventDays = hasSummary ? detectEventDays(summaries) : []
   const eventDates = new Set(eventDays.map(e => e.date))
   const currentUpload = uploads.find(u => u.venue === 'outpost' && u.year === selectedYear && u.month === selectedMonth)
 
@@ -105,71 +108,97 @@ function OutpostContent() {
         <DataQualityBanner flags={currentUpload.dataQualityFlags} uploadId={currentUpload.id} />
       )}
 
-      {/* SECTION 1: EVENT ANALYSIS — ALWAYS FIRST */}
+      {/* SECTION 1: EVENT ANALYSIS */}
       <section id="event-analysis">
         <h2 className="text-lg font-semibold mb-4 border-b border-outpost-black/20 pb-2">Event Analysis</h2>
-        <EventDayAnalysis summaries={summaries} eventDays={eventDays} />
+        {hasSummary ? (
+          <EventDayAnalysis summaries={summaries} eventDays={eventDays} />
+        ) : (
+          <MissingDataSection fileType="summary" venue="outpost" />
+        )}
       </section>
 
       {/* SECTION 2: Revenue */}
       <section id="revenue">
         <h2 className="text-lg font-semibold mb-4 border-b border-outpost-black/20 pb-2">Revenue</h2>
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
-          <KpiCard label="Gross Revenue" value={formatCurrency(calcGrossRevenue(summaries))} accentColor="border-outpost-black" />
-          <KpiCard label="Net Revenue" value={formatCurrency(calcNetRevenue(summaries))} accentColor="border-outpost-black" />
-          <KpiCard
-            label="Avg/Day"
-            value={formatCurrency(calcAvgRevenuePerDay(summaries))}
-            subValue={`Event-adjusted: ${formatCurrency(calcAvgRevenuePerDay(summaries, eventDates))}`}
-            accentColor="border-outpost-black"
-          />
-          <KpiCard label="Transactions" value={calcTotalTransactions(summaries).toLocaleString()} accentColor="border-outpost-black" />
-          <KpiCard label="ATV" value={`$${calcATV(summaries).toFixed(2)}`} accentColor="border-outpost-black" />
-          <KpiCard label="Tip Rate" value={formatPercent(calcTipRate(summaries))} accentColor="border-outpost-black" />
-          <KpiCard label="Manual Discounts" value={formatPercent(calcDiscountRate(summaries))} accentColor="border-outpost-black" />
-          <KpiCard label="Happy Hour Discounts" value={formatPercent(calcAutoPricingRate(summaries))} accentColor="border-outpost-black" />
-        </div>
-        <DailyTrendChart
-          summaries={summaries}
-          accentColor="#0D0D0D"
-          eventDays={eventDays}
-          showRollingAvg
-        />
+        {hasSummary ? (
+          <>
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+              <KpiCard label="Gross Revenue" value={formatCurrency(calcGrossRevenue(summaries))} accentColor="border-outpost-black" />
+              <KpiCard label="Net Revenue" value={formatCurrency(calcNetRevenue(summaries))} accentColor="border-outpost-black" />
+              <KpiCard
+                label="Avg/Day"
+                value={formatCurrency(calcAvgRevenuePerDay(summaries))}
+                subValue={`Event-adjusted: ${formatCurrency(calcAvgRevenuePerDay(summaries, eventDates))}`}
+                accentColor="border-outpost-black"
+              />
+              <KpiCard label="Transactions" value={calcTotalTransactions(summaries).toLocaleString()} accentColor="border-outpost-black" />
+              <KpiCard label="ATV" value={`$${calcATV(summaries).toFixed(2)}`} accentColor="border-outpost-black" />
+              <KpiCard label="Tip Rate" value={formatPercent(calcTipRate(summaries))} accentColor="border-outpost-black" />
+              <KpiCard label="Manual Discounts" value={formatPercent(calcDiscountRate(summaries))} accentColor="border-outpost-black" />
+              <KpiCard label="Happy Hour Discounts" value={formatPercent(calcAutoPricingRate(summaries))} accentColor="border-outpost-black" />
+            </div>
+            <DailyTrendChart
+              summaries={summaries}
+              accentColor="#0D0D0D"
+              eventDays={eventDays}
+              showRollingAvg
+            />
+          </>
+        ) : (
+          <MissingDataSection fileType="summary" venue="outpost" />
+        )}
       </section>
 
       {/* SECTION 3: Products */}
       <section id="products">
         <h2 className="text-lg font-semibold mb-4 border-b border-outpost-black/20 pb-2">Products</h2>
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          <CategoryDonut products={products} excludeGiftCards showCateringDistinct />
-          <TopItemsChart products={products} accentColor="#0D0D0D" excludeCategories={['CATERING', 'Gift Cards']} />
-        </div>
+        {hasProducts ? (
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            <CategoryDonut products={products} excludeGiftCards showCateringDistinct />
+            <TopItemsChart products={products} accentColor="#0D0D0D" excludeCategories={['CATERING', 'Gift Cards']} />
+          </div>
+        ) : (
+          <MissingDataSection fileType="products" venue="outpost" />
+        )}
       </section>
 
       {/* SECTION 4: Alcohol & Beverage */}
       <section id="alcohol">
         <h2 className="text-lg font-semibold mb-4 border-b border-outpost-black/20 pb-2">Alcohol & Beverage</h2>
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          <DowChart summaries={summaries} accentColor="#0D0D0D" eventDays={eventDays} showEventToggle />
-          <AlcoholFoodSplit products={products} />
-          <DraftVsPackaged products={products} />
-          <HappyHourImpact summaries={summaries} />
-        </div>
+        {hasSummary || hasProducts ? (
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            {hasSummary && <DowChart summaries={summaries} accentColor="#0D0D0D" eventDays={eventDays} showEventToggle />}
+            {hasProducts && <AlcoholFoodSplit products={products} />}
+            {hasProducts && <DraftVsPackaged products={products} />}
+            {hasSummary && <HappyHourImpact summaries={summaries} />}
+            {!hasSummary && <MissingDataSection fileType="summary" venue="outpost" />}
+            {!hasProducts && <MissingDataSection fileType="products" venue="outpost" />}
+          </div>
+        ) : null}
       </section>
 
       {/* SECTION 5: Food */}
       <section id="food">
         <h2 className="text-lg font-semibold mb-4 border-b border-outpost-black/20 pb-2">Food</h2>
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          <FridayWingsTracker products={products} />
-          <CateringRevenue products={products} />
-        </div>
+        {hasProducts ? (
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            <FridayWingsTracker products={products} />
+            <CateringRevenue products={products} />
+          </div>
+        ) : (
+          <MissingDataSection fileType="products" venue="outpost" />
+        )}
       </section>
 
       {/* SECTION 6: Payment */}
       <section id="payment">
         <h2 className="text-lg font-semibold mb-4 border-b border-outpost-black/20 pb-2">Payment</h2>
-        <PaymentMethodChart summaries={summaries} />
+        {hasSummary ? (
+          <PaymentMethodChart summaries={summaries} />
+        ) : (
+          <MissingDataSection fileType="summary" venue="outpost" />
+        )}
       </section>
     </div>
   )

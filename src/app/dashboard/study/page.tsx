@@ -22,6 +22,7 @@ import FoodAttachRate from '@/components/study/FoodAttachRate'
 import SizeDistribution from '@/components/study/SizeDistribution'
 import SeasonalItemTracker from '@/components/study/SeasonalItemTracker'
 import ExportButton from '@/components/shared/ExportButton'
+import MissingDataSection from '@/components/shared/MissingDataSection'
 import type { UploadRecord, DailySummary, ProductRecord } from '@/types'
 
 function StudyContent() {
@@ -74,6 +75,8 @@ function StudyContent() {
     return <div className="text-center py-12 text-gray-500">No Study data uploaded yet.</div>
   }
 
+  const hasSummary = summaries.length > 0
+  const hasProducts = products.length > 0
   const currentUpload = uploads.find(u => u.venue === 'study' && u.year === selectedYear && u.month === selectedMonth)
   const studyUploads = uploads.filter(u => u.venue === 'study')
 
@@ -97,7 +100,6 @@ function StudyContent() {
         </div>
       </div>
 
-      {/* Data quality banners */}
       {currentUpload && (
         <DataQualityBanner flags={currentUpload.dataQualityFlags} uploadId={currentUpload.id} />
       )}
@@ -105,43 +107,61 @@ function StudyContent() {
       {/* Section: Revenue */}
       <section id="revenue">
         <h2 className="text-lg font-semibold text-study-black mb-4 border-b border-study-gold/30 pb-2">Revenue</h2>
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
-          <KpiCard label="Gross Revenue" value={formatCurrency(calcGrossRevenue(summaries))} accentColor="border-study-gold" />
-          <KpiCard label="Net Revenue" value={formatCurrency(calcNetRevenue(summaries))} accentColor="border-study-gold" />
-          <KpiCard label="Avg/Day" value={formatCurrency(calcAvgRevenuePerDay(summaries))} accentColor="border-study-gold" />
-          <KpiCard label="Transactions" value={calcTotalTransactions(summaries).toLocaleString()} accentColor="border-study-gold" />
-          <KpiCard label="ATV" value={`$${calcATV(summaries).toFixed(2)}`} accentColor="border-study-gold" />
-          <KpiCard label="Tip Rate" value={formatPercent(calcTipRate(summaries))} accentColor="border-study-gold" />
-          <KpiCard label="Discount Rate" value={formatPercent(calcDiscountRate(summaries))} accentColor="border-study-gold" />
-        </div>
-        <DailyTrendChart summaries={summaries} accentColor="#C4A952" />
+        {hasSummary ? (
+          <>
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+              <KpiCard label="Gross Revenue" value={formatCurrency(calcGrossRevenue(summaries))} accentColor="border-study-gold" />
+              <KpiCard label="Net Revenue" value={formatCurrency(calcNetRevenue(summaries))} accentColor="border-study-gold" />
+              <KpiCard label="Avg/Day" value={formatCurrency(calcAvgRevenuePerDay(summaries))} accentColor="border-study-gold" />
+              <KpiCard label="Transactions" value={calcTotalTransactions(summaries).toLocaleString()} accentColor="border-study-gold" />
+              <KpiCard label="ATV" value={`$${calcATV(summaries).toFixed(2)}`} accentColor="border-study-gold" />
+              <KpiCard label="Tip Rate" value={formatPercent(calcTipRate(summaries))} accentColor="border-study-gold" />
+              <KpiCard label="Discount Rate" value={formatPercent(calcDiscountRate(summaries))} accentColor="border-study-gold" />
+            </div>
+            <DailyTrendChart summaries={summaries} accentColor="#C4A952" />
+          </>
+        ) : (
+          <MissingDataSection fileType="summary" venue="study" />
+        )}
       </section>
 
       {/* Section: Products */}
       <section id="products">
         <h2 className="text-lg font-semibold text-study-black mb-4 border-b border-study-gold/30 pb-2">Products</h2>
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          <CategoryDonut products={products} />
-          <TopItemsChart products={products} accentColor="#C4A952" />
-        </div>
+        {hasProducts ? (
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            <CategoryDonut products={products} />
+            <TopItemsChart products={products} accentColor="#C4A952" />
+          </div>
+        ) : (
+          <MissingDataSection fileType="products" venue="study" />
+        )}
       </section>
 
       {/* Section: Patterns */}
       <section id="patterns">
         <h2 className="text-lg font-semibold text-study-black mb-4 border-b border-study-gold/30 pb-2">Patterns</h2>
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          <DowChart summaries={summaries} accentColor="#C4A952" />
-          <HotColdSplit products={products} />
-          <FoodAttachRate products={products} />
-          <SizeDistribution products={products} />
-          <SeasonalItemTracker hasMultipleMonths={studyUploads.length >= 2} />
-        </div>
+        {hasSummary || hasProducts ? (
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            {hasSummary && <DowChart summaries={summaries} accentColor="#C4A952" />}
+            {hasProducts && <HotColdSplit products={products} />}
+            {hasProducts && <FoodAttachRate products={products} />}
+            {hasProducts && <SizeDistribution products={products} />}
+            {hasProducts && <SeasonalItemTracker hasMultipleMonths={studyUploads.length >= 2} />}
+            {!hasSummary && <MissingDataSection fileType="summary" venue="study" />}
+            {!hasProducts && <MissingDataSection fileType="products" venue="study" />}
+          </div>
+        ) : null}
       </section>
 
       {/* Section: Payment */}
       <section id="payment">
         <h2 className="text-lg font-semibold text-study-black mb-4 border-b border-study-gold/30 pb-2">Payment</h2>
-        <PaymentMethodChart summaries={summaries} />
+        {hasSummary ? (
+          <PaymentMethodChart summaries={summaries} />
+        ) : (
+          <MissingDataSection fileType="summary" venue="study" />
+        )}
       </section>
     </div>
   )
