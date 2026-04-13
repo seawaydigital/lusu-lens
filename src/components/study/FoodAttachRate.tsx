@@ -14,17 +14,30 @@ export default function FoodAttachRate({ products }: FoodAttachRateProps) {
     .filter(p => ['food', 'pastries'].includes(p.category.toLowerCase()))
     .reduce((sum, p) => sum + p.gross, 0)
 
+  // Target is always 5 percentage points above current rate, rounded to nearest 5
+  const target = Math.ceil((rate + 5) / 5) * 5
+  const revenueGain = Math.round((totalGross * (target - rate)) / 100)
+
+  let insight: string
+  if (rate >= 25) {
+    insight = `Strong food attachment — top-tier for a campus café. Focus on maintaining quality and variety.`
+  } else {
+    insight = `Raising to ${target}% would add ~$${revenueGain.toLocaleString()}/month without a single new customer.`
+  }
+
   return (
-    <div className="bg-white rounded-xl p-5 shadow-sm border-l-4 border-study-gold">
-      <h3 className="text-sm font-semibold text-gray-700 mb-1">
+    <div className="bg-white rounded-xl p-5 shadow-card ring-1 ring-black/[0.06] border-t-2 border-t-study-gold">
+      <p className="text-[11px] font-semibold tracking-[0.08em] uppercase text-gray-400 mb-2">
         Food Attach Rate
-      </h3>
-      <p className="text-3xl font-bold text-study-black">{rate.toFixed(1)}%</p>
-      <p className="text-sm text-gray-500 mt-1">
-        ${foodGross.toLocaleString()} of ${totalGross.toLocaleString()} total
       </p>
-      <p className="text-xs text-gray-400 mt-3">
-        Most actionable Study metric. Raising from {rate.toFixed(0)}% to 15% would add ~$1,200/month in revenue.
+      <p className="text-[28px] font-bold text-gray-900 tracking-tight tabular-nums">
+        {rate.toFixed(1)}%
+      </p>
+      <p className="text-xs text-gray-400 font-medium mt-1.5">
+        ${Math.round(foodGross).toLocaleString()} food of ${Math.round(totalGross).toLocaleString()} total sales
+      </p>
+      <p className="text-xs text-gray-400 leading-relaxed mt-3">
+        {insight}
       </p>
     </div>
   )
