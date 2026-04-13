@@ -41,11 +41,11 @@ export default function Navbar() {
           {/* Brand */}
           <Link href="/" className="flex items-center gap-2.5 shrink-0">
             <Image
-              src="/lusu-lens/logos/lusu.png"
-              alt="LUSU"
-              width={56}
-              height={32}
-              className="object-contain"
+              src="/lusu-lens/logos/lens-logo.png"
+              alt="LUSU Lens"
+              width={36}
+              height={36}
+              className="object-contain rounded-full"
             />
             <div className="hidden sm:block">
               <span className="text-[15px] font-bold tracking-tight text-white leading-none">
