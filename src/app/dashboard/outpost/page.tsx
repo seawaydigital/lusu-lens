@@ -13,6 +13,7 @@ import { detectEventDays } from '@/lib/metrics/eventDetector'
 import KpiCard from '@/components/shared/KpiCard'
 import MonthSelector from '@/components/shared/MonthSelector'
 import DataQualityBanner from '@/components/shared/DataQualityBanner'
+import DataQualityBannerGroup from '@/components/shared/DataQualityBannerGroup'
 import DailyTrendChart from '@/components/shared/DailyTrendChart'
 import CategoryDonut from '@/components/shared/CategoryDonut'
 import TopItemsChart from '@/components/shared/TopItemsChart'
@@ -149,9 +150,10 @@ function OutpostContent() {
         </div>
       </div>
 
-      {selectedUploads.map(u => (
-        <DataQualityBanner key={u.id} flags={u.dataQualityFlags} uploadId={u.id} />
-      ))}
+      {selectedUploads.length === 1
+        ? <DataQualityBanner flags={selectedUploads[0].dataQualityFlags} uploadId={selectedUploads[0].id} />
+        : <DataQualityBannerGroup uploads={selectedUploads} />
+      }
 
       {/* SECTION 1: EVENTS */}
       <section id="event-analysis">
