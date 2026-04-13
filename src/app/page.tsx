@@ -34,28 +34,34 @@ export default function UploadPage() {
   }, [])
 
   const processDroppedFiles = useCallback((droppedFiles: File[]) => {
-    const statuses: FileStatus[] = droppedFiles.map(file => {
-      const detected = detectFileType(file.name)
-      const monthYear = extractMonthYear(file.name)
-
-      if (!detected || !monthYear) {
-        return { file, status: 'error' as const, label: `Unrecognised file: ${file.name}` }
-      }
-
-      const monthName = new Date(monthYear.year, monthYear.month - 1).toLocaleString(
-        'default', { month: 'long' }
+    setFiles(prev => {
+      const existingNames = new Set(prev.map(f => f.file.name + f.file.size))
+      const newFiles = droppedFiles.filter(
+        f => !existingNames.has(f.name + f.size)
       )
-      const venueLabel = detected.venue === 'study' ? 'Study' : 'Outpost'
-      const typeLabel = detected.type === 'products' ? 'Product Sales' : 'Summary'
+      const statuses: FileStatus[] = newFiles.map(file => {
+        const detected = detectFileType(file.name)
+        const monthYear = extractMonthYear(file.name)
 
-      return {
-        file,
-        status: 'detected' as const,
-        label: `Detected: ${venueLabel} ${typeLabel} — ${monthName} ${monthYear.year}`,
-        detected: { ...detected, ...monthYear, file },
-      }
+        if (!detected || !monthYear) {
+          return { file, status: 'error' as const, label: `Unrecognised file: ${file.name}` }
+        }
+
+        const monthName = new Date(monthYear.year, monthYear.month - 1).toLocaleString(
+          'default', { month: 'long' }
+        )
+        const venueLabel = detected.venue === 'study' ? 'Study' : 'Outpost'
+        const typeLabel = detected.type === 'products' ? 'Product Sales' : 'Summary'
+
+        return {
+          file,
+          status: 'detected' as const,
+          label: `Detected: ${venueLabel} ${typeLabel} — ${monthName} ${monthYear.year}`,
+          detected: { ...detected, ...monthYear, file },
+        }
+      })
+      return [...prev, ...statuses]
     })
-    setFiles(prev => [...prev, ...statuses])
   }, [])
 
   const handleDrop = useCallback((e: React.DragEvent) => {
@@ -77,118 +83,123 @@ export default function UploadPage() {
 
   async function handleProcess() {
     setProcessing(true)
-    const detectedFiles = files.filter(f => f.status === 'detected' && f.detected)
+    try {
+      const detectedFiles = files.filter(f => f.status === 'detected' && f.detected)
 
-    // Group by month+venue
-    const groups = new Map<string, DetectedFile[]>()
-    for (const f of detectedFiles) {
-      const d = f.detected!
-      const key = `${d.venue}_${d.year}_${d.month}`
-      if (!groups.has(key)) groups.set(key, [])
-      groups.get(key)!.push(d)
-    }
-
-    for (const [uploadId, groupFiles] of Array.from(groups.entries())) {
-      const existing = await getUpload(uploadId)
-      if (existing) {
-        const [venue, yearStr, monthStr] = uploadId.split('_')
-        await deleteUploadData(
-          venue as 'study' | 'outpost',
-          parseInt(yearStr),
-          parseInt(monthStr)
-        )
+      // Group by month+venue
+      const groups = new Map<string, DetectedFile[]>()
+      for (const f of detectedFiles) {
+        const d = f.detected!
+        const key = `${d.venue}_${d.year}_${d.month}`
+        if (!groups.has(key)) groups.set(key, [])
+        groups.get(key)!.push(d)
       }
 
-      const first = groupFiles[0]
-      const flags: DataQualityFlag[] = []
-      let operatingDayCount = 0
-      const fileTypes: Array<'products' | 'summary'> = []
-
-      for (const df of groupFiles) {
-        setFiles(prev =>
-          prev.map(f =>
-            f.detected === df ? { ...f, status: 'parsing' as const } : f
+      for (const [uploadId, groupFiles] of Array.from(groups.entries())) {
+        const existing = await getUpload(uploadId)
+        if (existing) {
+          const [venue, yearStr, monthStr] = uploadId.split('_')
+          await deleteUploadData(
+            venue as 'study' | 'outpost',
+            parseInt(yearStr),
+            parseInt(monthStr)
           )
-        )
+        }
 
-        const buffer = await df.file.arrayBuffer()
+        const first = groupFiles[0]
+        const flags: DataQualityFlag[] = []
+        let operatingDayCount = 0
+        const fileTypes: Array<'products' | 'summary'> = []
 
-        if (df.type === 'products') {
-          const records = parseProductFile(buffer, df.venue)
-          await saveProducts(records)
-          fileTypes.push('products')
-
-          const giftCards = records.filter(
-            r => r.category.toLowerCase() === 'gift cards'
+        for (const df of groupFiles) {
+          setFiles(prev =>
+            prev.map(f =>
+              f.detected === df ? { ...f, status: 'parsing' as const } : f
+            )
           )
-          if (giftCards.length > 0) {
-            const total = giftCards.reduce((sum, r) => sum + r.gross, 0)
-            flags.push({
-              type: 'gift_card_present',
-              message: `$${total.toFixed(2)} in gift card sales detected.`,
-              severity: 'info',
-            })
+
+          const buffer = await df.file.arrayBuffer()
+
+          if (df.type === 'products') {
+            const records = parseProductFile(buffer, df.venue)
+            await saveProducts(records)
+            fileTypes.push('products')
+
+            const giftCards = records.filter(
+              r => r.category.toLowerCase() === 'gift cards'
+            )
+            if (giftCards.length > 0) {
+              const total = giftCards.reduce((sum, r) => sum + r.gross, 0)
+              flags.push({
+                type: 'gift_card_present',
+                message: `$${total.toFixed(2)} in gift card sales detected.`,
+                severity: 'info',
+              })
+            }
+
+            const divergent = records.filter(
+              r => Math.abs(r.gross - r.net) > 1.0
+            )
+            if (divergent.length > 0) {
+              flags.push({
+                type: 'net_gross_divergence',
+                message: `${divergent.length} product rows have item-level discounts applied (Net and Gross differ by >$1). Gross is used as the revenue figure throughout.`,
+                severity: 'info',
+              })
+            }
+          } else {
+            const summaries = parseSummaryFile(buffer, df.venue)
+            await saveSummaries(summaries)
+            fileTypes.push('summary')
+            operatingDayCount = summaries.length
           }
 
-          const divergent = records.filter(
-            r => Math.abs(r.gross - r.net) > 1.0
+          setFiles(prev =>
+            prev.map(f =>
+              f.detected === df ? { ...f, status: 'done' as const } : f
+            )
           )
-          if (divergent.length > 0) {
+        }
+
+        // Check incomplete month
+        if (operatingDayCount > 0) {
+          const daysInMonth = new Date(first.year, first.month, 0).getDate()
+          let expectedWeekdays = 0
+          for (let d = 1; d <= daysInMonth; d++) {
+            const day = new Date(first.year, first.month - 1, d).getDay()
+            if (day !== 0 && day !== 6) expectedWeekdays++
+          }
+          if (operatingDayCount < expectedWeekdays - 3) {
+            const monthStr = new Date(first.year, first.month - 1).toLocaleString(
+              'default', { month: 'long' }
+            )
             flags.push({
-              type: 'net_gross_divergence',
-              message: `${divergent.length} product rows have item-level discounts applied (Net and Gross differ by >$1). Gross is used as the revenue figure throughout.`,
-              severity: 'info',
+              type: 'incomplete_month',
+              message: `Warning: only ${operatingDayCount} operating days found. Expected approximately ${expectedWeekdays} for ${monthStr} ${first.year}. Revenue totals may be understated.`,
+              severity: 'warning',
             })
           }
-        } else {
-          const summaries = parseSummaryFile(buffer, df.venue)
-          await saveSummaries(summaries)
-          fileTypes.push('summary')
-          operatingDayCount = summaries.length
         }
 
-        setFiles(prev =>
-          prev.map(f =>
-            f.detected === df ? { ...f, status: 'done' as const } : f
-          )
-        )
+        await saveUpload({
+          id: uploadId,
+          venue: first.venue,
+          year: first.year,
+          month: first.month,
+          uploadedAt: new Date().toISOString(),
+          fileTypes,
+          operatingDayCount,
+          dataQualityFlags: flags,
+        })
       }
 
-      // Check incomplete month
-      if (operatingDayCount > 0) {
-        const daysInMonth = new Date(first.year, first.month, 0).getDate()
-        let expectedWeekdays = 0
-        for (let d = 1; d <= daysInMonth; d++) {
-          const day = new Date(first.year, first.month - 1, d).getDay()
-          if (day !== 0 && day !== 6) expectedWeekdays++
-        }
-        if (operatingDayCount < expectedWeekdays - 3) {
-          const monthStr = new Date(first.year, first.month - 1).toLocaleString(
-            'default', { month: 'long' }
-          )
-          flags.push({
-            type: 'incomplete_month',
-            message: `Warning: only ${operatingDayCount} operating days found. Expected approximately ${expectedWeekdays} for ${monthStr} ${first.year}. Revenue totals may be understated.`,
-            severity: 'warning',
-          })
-        }
-      }
-
-      await saveUpload({
-        id: uploadId,
-        venue: first.venue,
-        year: first.year,
-        month: first.month,
-        uploadedAt: new Date().toISOString(),
-        fileTypes,
-        operatingDayCount,
-        dataQualityFlags: flags,
-      })
+      const updated = await getUploads()
+      setUploads(updated)
+    } catch (err) {
+      console.error('Upload processing failed:', err)
+    } finally {
+      setProcessing(false)
     }
-
-    const updated = await getUploads()
-    setUploads(updated)
-    setProcessing(false)
   }
 
   const hasDetectedFiles = files.some(f => f.status === 'detected')
