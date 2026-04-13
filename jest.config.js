@@ -11,6 +11,7 @@ const config = {
     '\\.(css|less|scss)$': 'identity-obj-proxy',
   },
   testPathIgnorePatterns: ['<rootDir>/.next/', '<rootDir>/node_modules/'],
+  forceExit: true,
 }
 
 module.exports = createJestConfig(config)
