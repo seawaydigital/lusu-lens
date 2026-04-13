@@ -95,9 +95,21 @@ function OutpostContent() {
     load()
   }, [monthsParam])
 
-  if (loading) return <div className="text-center py-12 text-gray-500">Loading...</div>
+  if (loading) {
+    return (
+      <div className="flex flex-col items-center justify-center py-20 gap-3">
+        <div className="spinner" />
+        <p className="text-sm text-gray-400">Loading…</p>
+      </div>
+    )
+  }
   if (summaries.length === 0 && products.length === 0) {
-    return <div className="text-center py-12 text-gray-500">No Outpost data uploaded yet.</div>
+    return (
+      <div className="flex flex-col items-center justify-center py-20 gap-3 text-center">
+        <p className="text-gray-400 text-sm">No Outpost data uploaded yet.</p>
+        <a href="/" className="text-sm font-medium text-lusu-cyan hover:underline">Import your first month →</a>
+      </div>
+    )
   }
 
   const hasSummary = summaries.length > 0
@@ -125,7 +137,7 @@ function OutpostContent() {
     : activeKeys.length > 1 ? `${activeKeys.length} months` : ''
 
   return (
-    <div className="space-y-8" id="outpost-dashboard">
+    <div className="space-y-10" id="outpost-dashboard">
       {/* Header */}
       <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
         <div className="hidden md:block md:w-48" />
@@ -159,14 +171,20 @@ function OutpostContent() {
       {/* SECTION 0: KEY INSIGHTS */}
       {hasSummary && (
         <section id="insights">
-          <h2 className="text-lg font-semibold mb-4 border-b border-outpost-black/20 pb-2">Key Insights</h2>
+          <div className="section-header">
+            <span className="section-label">Key Insights</span>
+            <span className="section-rule" />
+          </div>
           <AutoInsights summaries={summaries} venue="outpost" eventDays={eventDays} />
         </section>
       )}
 
       {/* SECTION 1: EVENTS */}
       <section id="event-analysis">
-        <h2 className="text-lg font-semibold mb-4 border-b border-outpost-black/20 pb-2">Event Nights</h2>
+        <div className="section-header">
+          <span className="section-label">Event Nights</span>
+          <span className="section-rule" />
+        </div>
         {hasSummary && hasProducts ? (
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
             <EventDayAnalysis summaries={summaries} eventDays={eventDays} />
@@ -184,7 +202,10 @@ function OutpostContent() {
 
       {/* SECTION 2: Revenue */}
       <section id="revenue">
-        <h2 className="text-lg font-semibold mb-4 border-b border-outpost-black/20 pb-2">Revenue</h2>
+        <div className="section-header">
+          <span className="section-label">Revenue</span>
+          <span className="section-rule" />
+        </div>
         {hasSummary ? (
           <>
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
@@ -255,7 +276,10 @@ function OutpostContent() {
       {/* SECTION 3: Weekly Patterns */}
       {hasSummary && (
         <section id="weekly">
-          <h2 className="text-lg font-semibold mb-4 border-b border-outpost-black/20 pb-2">Weekly Performance</h2>
+          <div className="section-header">
+            <span className="section-label">Weekly Performance</span>
+            <span className="section-rule" />
+          </div>
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
             <WeeklyView summaries={summaries} accentColor="#0D0D0D" />
             <DaypartChart summaries={summaries} />
@@ -265,7 +289,10 @@ function OutpostContent() {
 
       {/* SECTION 4: Products */}
       <section id="products">
-        <h2 className="text-lg font-semibold mb-4 border-b border-outpost-black/20 pb-2">Products</h2>
+        <div className="section-header">
+          <span className="section-label">Products</span>
+          <span className="section-rule" />
+        </div>
         {hasProducts ? (
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
             <CategoryDonut products={products} excludeGiftCards showCateringDistinct />
@@ -279,14 +306,20 @@ function OutpostContent() {
       {/* SECTION 5: Menu Categories */}
       {hasSummary && (
         <section id="menu-categories">
-          <h2 className="text-lg font-semibold mb-4 border-b border-outpost-black/20 pb-2">Menu Category Breakdown</h2>
+          <div className="section-header">
+            <span className="section-label">Menu Category Breakdown</span>
+            <span className="section-rule" />
+          </div>
           <SectionMixChart summaries={summaries} venue="outpost" />
         </section>
       )}
 
       {/* SECTION 6: Alcohol & Beverage */}
       <section id="alcohol">
-        <h2 className="text-lg font-semibold mb-4 border-b border-outpost-black/20 pb-2">Alcohol & Beverage</h2>
+        <div className="section-header">
+          <span className="section-label">Alcohol & Beverage</span>
+          <span className="section-rule" />
+        </div>
         {hasSummary || hasProducts ? (
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
             {hasSummary && <DowChart summaries={summaries} accentColor="#0D0D0D" eventDays={eventDays} showEventToggle />}
@@ -301,7 +334,10 @@ function OutpostContent() {
 
       {/* SECTION 7: Food */}
       <section id="food">
-        <h2 className="text-lg font-semibold mb-4 border-b border-outpost-black/20 pb-2">Food</h2>
+        <div className="section-header">
+          <span className="section-label">Food</span>
+          <span className="section-rule" />
+        </div>
         {hasProducts ? (
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
             <FridayWingsTracker products={products} />
@@ -314,7 +350,10 @@ function OutpostContent() {
 
       {/* SECTION 8: Payment */}
       <section id="payment">
-        <h2 className="text-lg font-semibold mb-4 border-b border-outpost-black/20 pb-2">Payment</h2>
+        <div className="section-header">
+          <span className="section-label">Payment</span>
+          <span className="section-rule" />
+        </div>
         {hasSummary ? (
           <PaymentMethodChart summaries={summaries} />
         ) : (
@@ -327,7 +366,7 @@ function OutpostContent() {
 
 export default function OutpostPage() {
   return (
-    <Suspense fallback={<div className="text-center py-12 text-gray-500">Loading...</div>}>
+    <Suspense fallback={<div className="flex flex-col items-center justify-center py-20 gap-3"><div className="spinner" /><p className="text-sm text-gray-400">Loading…</p></div>}>
       <OutpostContent />
     </Suspense>
   )

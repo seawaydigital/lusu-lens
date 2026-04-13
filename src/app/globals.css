@@ -6,6 +6,38 @@
   body {
     @apply antialiased;
   }
+
+  /* Tabular numeric figures for all currency/number values */
+  .tabular-nums {
+    font-variant-numeric: tabular-nums;
+    font-feature-settings: "tnum";
+  }
+}
+
+@layer components {
+  /* ── Section header: label + full-width rule ── */
+  .section-header {
+    @apply flex items-center gap-3 mb-6;
+  }
+  .section-label {
+    @apply text-[11px] font-semibold tracking-[0.10em] uppercase text-gray-400 whitespace-nowrap;
+  }
+  .section-rule {
+    @apply flex-1 h-px bg-gray-100;
+  }
+
+  /* ── Spinner used in loading states ── */
+  .spinner {
+    @apply w-6 h-6 rounded-full border-2 border-gray-200 border-t-lusu-cyan animate-spin;
+  }
+
+  /* ── Unified card surface ── */
+  .card {
+    @apply bg-white rounded-xl shadow-card ring-1 ring-black/[0.06];
+  }
+  .card-hover {
+    @apply hover:shadow-card-hover hover:-translate-y-px transition-all duration-150;
+  }
 }
 
 @media print {
@@ -21,7 +53,8 @@
     padding: 0 !important;
   }
 
-  .shadow-sm {
+  .shadow-sm,
+  .shadow-card {
     box-shadow: none !important;
     border: 1px solid #e5e7eb !important;
   }

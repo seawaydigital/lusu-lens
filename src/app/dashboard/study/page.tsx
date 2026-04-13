@@ -91,9 +91,21 @@ function StudyContent() {
     load()
   }, [monthsParam])
 
-  if (loading) return <div className="text-center py-12 text-gray-500">Loading...</div>
+  if (loading) {
+    return (
+      <div className="flex flex-col items-center justify-center py-20 gap-3">
+        <div className="spinner" />
+        <p className="text-sm text-gray-400">Loading…</p>
+      </div>
+    )
+  }
   if (summaries.length === 0 && products.length === 0) {
-    return <div className="text-center py-12 text-gray-500">No Study data uploaded yet.</div>
+    return (
+      <div className="flex flex-col items-center justify-center py-20 gap-3 text-center">
+        <p className="text-gray-400 text-sm">No Study data uploaded yet.</p>
+        <a href="/" className="text-sm font-medium text-lusu-cyan hover:underline">Import your first month →</a>
+      </div>
+    )
   }
 
   const hasSummary = summaries.length > 0
@@ -119,7 +131,7 @@ function StudyContent() {
     : activeKeys.length > 1 ? `${activeKeys.length} months` : ''
 
   return (
-    <div className="space-y-8" id="study-dashboard">
+    <div className="space-y-10" id="study-dashboard">
       {/* Header */}
       <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
         <div className="hidden md:block md:w-48" />
@@ -153,14 +165,20 @@ function StudyContent() {
       {/* Section: Key Insights */}
       {hasSummary && (
         <section id="insights">
-          <h2 className="text-lg font-semibold text-study-black mb-4 border-b border-study-gold/30 pb-2">Key Insights</h2>
+          <div className="section-header">
+            <span className="section-label">Key Insights</span>
+            <span className="section-rule" />
+          </div>
           <AutoInsights summaries={summaries} venue="study" />
         </section>
       )}
 
       {/* Section: Revenue */}
       <section id="revenue">
-        <h2 className="text-lg font-semibold text-study-black mb-4 border-b border-study-gold/30 pb-2">Revenue</h2>
+        <div className="section-header">
+          <span className="section-label">Revenue</span>
+          <span className="section-rule" />
+        </div>
         {hasSummary ? (
           <>
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
@@ -227,7 +245,10 @@ function StudyContent() {
       {/* Section: Weekly Patterns */}
       {hasSummary && (
         <section id="weekly">
-          <h2 className="text-lg font-semibold text-study-black mb-4 border-b border-study-gold/30 pb-2">Weekly Performance</h2>
+          <div className="section-header">
+            <span className="section-label">Weekly Performance</span>
+            <span className="section-rule" />
+          </div>
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
             <WeeklyView summaries={summaries} accentColor="#C4A952" />
             <DaypartChart summaries={summaries} />
@@ -237,7 +258,10 @@ function StudyContent() {
 
       {/* Section: Products */}
       <section id="products">
-        <h2 className="text-lg font-semibold text-study-black mb-4 border-b border-study-gold/30 pb-2">Products</h2>
+        <div className="section-header">
+          <span className="section-label">Products</span>
+          <span className="section-rule" />
+        </div>
         {hasProducts ? (
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
             <CategoryDonut products={products} />
@@ -251,14 +275,20 @@ function StudyContent() {
       {/* Section: Menu Categories */}
       {hasSummary && (
         <section id="menu-categories">
-          <h2 className="text-lg font-semibold text-study-black mb-4 border-b border-study-gold/30 pb-2">Menu Category Breakdown</h2>
+          <div className="section-header">
+            <span className="section-label">Menu Category Breakdown</span>
+            <span className="section-rule" />
+          </div>
           <SectionMixChart summaries={summaries} venue="study" />
         </section>
       )}
 
       {/* Section: Patterns */}
       <section id="patterns">
-        <h2 className="text-lg font-semibold text-study-black mb-4 border-b border-study-gold/30 pb-2">Patterns</h2>
+        <div className="section-header">
+          <span className="section-label">Patterns</span>
+          <span className="section-rule" />
+        </div>
         {hasSummary || hasProducts ? (
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
             {hasSummary && <DowChart summaries={summaries} accentColor="#C4A952" />}
@@ -274,7 +304,10 @@ function StudyContent() {
 
       {/* Section: Payment */}
       <section id="payment">
-        <h2 className="text-lg font-semibold text-study-black mb-4 border-b border-study-gold/30 pb-2">Payment</h2>
+        <div className="section-header">
+          <span className="section-label">Payment</span>
+          <span className="section-rule" />
+        </div>
         {hasSummary ? (
           <PaymentMethodChart summaries={summaries} />
         ) : (
@@ -287,7 +320,7 @@ function StudyContent() {
 
 export default function StudyPage() {
   return (
-    <Suspense fallback={<div className="text-center py-12 text-gray-500">Loading...</div>}>
+    <Suspense fallback={<div className="flex flex-col items-center justify-center py-20 gap-3"><div className="spinner" /><p className="text-sm text-gray-400">Loading…</p></div>}>
       <StudyContent />
     </Suspense>
   )

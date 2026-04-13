@@ -52,10 +52,10 @@ export default function DailyTrendChart({
   })
 
   return (
-    <div className="bg-white rounded-xl p-5 shadow-sm">
-      <h3 className="text-sm font-semibold text-gray-700 mb-4">
+    <div className="bg-white rounded-xl p-5 shadow-card ring-1 ring-black/[0.06]">
+      <p className="text-[11px] font-semibold tracking-[0.08em] uppercase text-gray-400 mb-4">
         Daily Revenue Trend
-      </h3>
+      </p>
       <ResponsiveContainer width="100%" height={300}>
         <LineChart data={data}>
           <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />

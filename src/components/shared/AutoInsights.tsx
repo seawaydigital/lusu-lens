@@ -9,7 +9,6 @@ interface InsightCard {
   value: string
   label: string
   subtext: string
-  accentColor: string
 }
 
 interface Props {
@@ -19,14 +18,13 @@ interface Props {
 }
 
 const DOW_NAMES = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat']
-const DOW_FULL = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday']
+const DOW_FULL  = ['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday']
 
 function fmt(n: number) {
   return `$${Math.round(n).toLocaleString()}`
 }
 
 function buildStudyInsights(summaries: DailySummary[]): InsightCard[] {
-  const accent = '#C4A952'
   const cards: InsightCard[] = []
 
   // 1. Best single day
@@ -38,11 +36,10 @@ function buildStudyInsights(summaries: DailySummary[]): InsightCard[] {
     const d = new Date(bestDay.date + 'T12:00:00')
     const label = d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
     cards.push({
-      icon: <TrendingUp size={18} />,
+      icon: <TrendingUp size={16} strokeWidth={2} />,
       value: fmt(bestDay.netSales),
       label: 'Best Day',
       subtext: `${DOW_NAMES[d.getDay()]} ${label} — highest revenue day this period`,
-      accentColor: accent,
     })
   }
 
@@ -63,72 +60,62 @@ function buildStudyInsights(summaries: DailySummary[]): InsightCard[] {
   )
   if (bestDow.dow >= 0) {
     cards.push({
-      icon: <Calendar size={18} />,
+      icon: <Calendar size={16} strokeWidth={2} />,
       value: DOW_FULL[bestDow.dow],
       label: 'Strongest Day of Week',
       subtext: `Average of ${fmt(bestDow.avg)} per ${DOW_FULL[bestDow.dow]}`,
-      accentColor: accent,
     })
   }
 
-  // 3. Revenue per customer (if guestCount available)
+  // 3. Revenue per customer (if guestCount available) or avg orders/day
   const totalGuests = summaries.reduce((sum, s) => sum + (s.guestCount ?? 0), 0)
-  const totalNet = summaries.reduce((sum, s) => sum + s.netSales, 0)
+  const totalNet    = summaries.reduce((sum, s) => sum + s.netSales, 0)
   if (totalGuests > 0) {
-    const revenuePerGuest = totalNet / totalGuests
     cards.push({
-      icon: <Users size={18} />,
-      value: fmt(revenuePerGuest),
+      icon: <Users size={16} strokeWidth={2} />,
+      value: fmt(totalNet / totalGuests),
       label: 'Revenue per Customer',
       subtext: `Based on ${totalGuests.toLocaleString()} customers served`,
-      accentColor: accent,
     })
   } else {
-    // Fallback: orders/day
     const avgOrders = summaries.reduce((sum, s) => sum + s.totalTransactions, 0) / summaries.length
     cards.push({
-      icon: <Users size={18} />,
+      icon: <Users size={16} strokeWidth={2} />,
       value: Math.round(avgOrders).toString(),
       label: 'Avg Orders / Day',
-      subtext: `Average number of customer transactions per operating day`,
-      accentColor: accent,
+      subtext: 'Average number of transactions per operating day',
     })
   }
 
   // 4. Discount dollars
   const discountDollars = summaries.reduce((sum, s) => sum + Math.abs(s.discounts), 0)
-  const gross = summaries.reduce((sum, s) => sum + s.grossSales, 0)
-  const discountPct = gross > 0 ? (discountDollars / gross) * 100 : 0
+  const gross           = summaries.reduce((sum, s) => sum + s.grossSales, 0)
+  const discountPct     = gross > 0 ? (discountDollars / gross) * 100 : 0
   cards.push({
-    icon: <Tag size={18} />,
+    icon: <Tag size={16} strokeWidth={2} />,
     value: fmt(discountDollars),
     label: 'Discounts Given Away',
-    subtext: `${discountPct.toFixed(1)}% of gross sales — every dollar here is a direct margin cost`,
-    accentColor: accent,
+    subtext: `${discountPct.toFixed(1)}% of gross — every dollar here is a direct margin cost`,
   })
 
   return cards
 }
 
 function buildOutpostInsights(summaries: DailySummary[], eventDays: EventDay[]): InsightCard[] {
-  const accent = '#0D0D0D'
   const cards: InsightCard[] = []
-
-  const eventDateSet = new Set(eventDays.map(e => e.date))
-  const eventSummaries = summaries.filter(s => eventDateSet.has(s.date))
+  const eventDateSet   = new Set(eventDays.map(e => e.date))
+  const eventSummaries  = summaries.filter(s =>  eventDateSet.has(s.date))
   const regularSummaries = summaries.filter(s => !eventDateSet.has(s.date))
-
-  const totalNet = summaries.reduce((sum, s) => sum + s.netSales, 0)
-  const eventNet = eventSummaries.reduce((sum, s) => sum + s.netSales, 0)
+  const totalNet  = summaries.reduce((sum, s) => sum + s.netSales, 0)
+  const eventNet  = eventSummaries.reduce((sum, s) => sum + s.netSales, 0)
 
   // 1. Event dependency
   const eventPct = totalNet > 0 ? (eventNet / totalNet) * 100 : 0
   cards.push({
-    icon: <Music size={18} />,
+    icon: <Music size={16} strokeWidth={2} />,
     value: `${eventPct.toFixed(0)}%`,
     label: 'Event-Driven Revenue',
     subtext: `${eventDays.length} event night${eventDays.length !== 1 ? 's' : ''} generated ${fmt(eventNet)} of total revenue`,
-    accentColor: accent,
   })
 
   // 2. Regular night baseline
@@ -136,25 +123,23 @@ function buildOutpostInsights(summaries: DailySummary[], eventDays: EventDay[]):
     ? regularSummaries.reduce((sum, s) => sum + s.netSales, 0) / regularSummaries.length
     : 0
   cards.push({
-    icon: <BarChart2 size={18} />,
+    icon: <BarChart2 size={16} strokeWidth={2} />,
     value: fmt(regularAvg),
     label: 'Regular Night Average',
     subtext: `Avg net sales on non-event nights (${regularSummaries.length} nights)`,
-    accentColor: accent,
   })
 
   // 3. Total tips
   const totalTips = summaries.reduce((sum, s) => sum + s.tips, 0)
-  const tipRate = totalNet > 0 ? (totalTips / totalNet) * 100 : 0
+  const tipRate   = totalNet > 0 ? (totalTips / totalNet) * 100 : 0
   cards.push({
-    icon: <DollarSign size={18} />,
+    icon: <DollarSign size={16} strokeWidth={2} />,
     value: fmt(totalTips),
     label: 'Tips Collected',
-    subtext: `${tipRate.toFixed(1)}% tip rate — card tips only, cash tips not tracked in POS`,
-    accentColor: accent,
+    subtext: `${tipRate.toFixed(1)}% tip rate — card tips only, cash tips not tracked`,
   })
 
-  // 4. Best day of week (regular nights only, to avoid event skew)
+  // 4. Best regular DOW (excludes event nights to avoid skew)
   const baselineSummaries = regularSummaries.length >= 3 ? regularSummaries : summaries
   const dowTotals: Record<number, { sum: number; count: number }> = {}
   for (const s of baselineSummaries) {
@@ -172,11 +157,10 @@ function buildOutpostInsights(summaries: DailySummary[], eventDays: EventDay[]):
   )
   if (bestDow.dow >= 0) {
     cards.push({
-      icon: <Zap size={18} />,
+      icon: <Zap size={16} strokeWidth={2} />,
       value: DOW_FULL[bestDow.dow],
       label: 'Strongest Regular Night',
       subtext: `Averages ${fmt(bestDow.avg)} on ${DOW_FULL[bestDow.dow]}s (excluding events)`,
-      accentColor: accent,
     })
   }
 
@@ -190,21 +174,37 @@ export default function AutoInsights({ summaries, venue, eventDays = [] }: Props
     ? buildStudyInsights(summaries)
     : buildOutpostInsights(summaries, eventDays)
 
-  const borderColor = venue === 'study' ? 'border-study-gold' : 'border-outpost-black'
-  const iconColor = venue === 'study' ? 'text-study-gold' : 'text-outpost-black'
-  const valueColor = venue === 'study' ? 'text-study-black' : 'text-outpost-black'
+  const isStudy = venue === 'study'
+  const iconBg   = isStudy ? 'bg-study-gold/10'   : 'bg-lusu-navy/10'
+  const iconText = isStudy ? 'text-study-gold'     : 'text-lusu-navy'
+  const topBorder = isStudy ? 'border-t-study-gold' : 'border-t-lusu-navy'
 
   return (
     <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
       {cards.map((card, i) => (
         <div
           key={i}
-          className={`bg-white rounded-xl p-4 shadow-sm border-l-4 ${borderColor} flex flex-col gap-1`}
+          className={`bg-white rounded-xl p-5 shadow-card ring-1 ring-black/[0.06] hover:shadow-card-hover transition-all duration-150 border-t-2 ${topBorder} flex flex-col gap-1.5`}
         >
-          <div className={`${iconColor} mb-1`}>{card.icon}</div>
-          <p className={`text-2xl font-bold leading-tight ${valueColor}`}>{card.value}</p>
-          <p className="text-xs font-semibold text-gray-600 uppercase tracking-wide">{card.label}</p>
-          <p className="text-xs text-gray-400 leading-relaxed mt-0.5">{card.subtext}</p>
+          {/* Icon */}
+          <div className={`w-8 h-8 rounded-lg flex items-center justify-center ${iconBg} ${iconText} mb-0.5`}>
+            {card.icon}
+          </div>
+
+          {/* Value */}
+          <p className="text-[22px] font-bold text-gray-900 leading-tight tracking-tight tabular-nums">
+            {card.value}
+          </p>
+
+          {/* Label */}
+          <p className="text-[11px] font-semibold uppercase tracking-[0.08em] text-gray-400">
+            {card.label}
+          </p>
+
+          {/* Subtext */}
+          <p className="text-xs text-gray-400 leading-relaxed mt-0.5">
+            {card.subtext}
+          </p>
         </div>
       ))}
     </div>

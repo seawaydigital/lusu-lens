@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useCallback, useEffect } from 'react'
-import { Upload, FileSpreadsheet, CheckCircle, XCircle, Loader2 } from 'lucide-react'
+import { Upload, FileSpreadsheet, CheckCircle, XCircle, Loader2, ArrowRight, BookOpen, Package } from 'lucide-react'
 import { detectFileType, extractMonthYear } from '@/lib/parsers/fileDetector'
 import { parseProductFile } from '@/lib/parsers/productParser'
 import { parseSummaryFile } from '@/lib/parsers/summaryParser'
@@ -28,6 +28,7 @@ export default function UploadPage() {
   const [files, setFiles] = useState<FileStatus[]>([])
   const [processing, setProcessing] = useState(false)
   const [uploads, setUploads] = useState<UploadRecord[]>([])
+  const [dragOver, setDragOver] = useState(false)
 
   useEffect(() => {
     initDB().then(() => getUploads().then(setUploads))
@@ -51,12 +52,12 @@ export default function UploadPage() {
           'default', { month: 'long' }
         )
         const venueLabel = detected.venue === 'study' ? 'Study' : 'Outpost'
-        const typeLabel = detected.type === 'products' ? 'Product Sales' : 'Summary'
+        const typeLabel  = detected.type === 'products' ? 'Product Sales' : 'Summary'
 
         return {
           file,
           status: 'detected' as const,
-          label: `Detected: ${venueLabel} ${typeLabel} — ${monthName} ${monthYear.year}`,
+          label: `${venueLabel} — ${typeLabel} · ${monthName} ${monthYear.year}`,
           detected: { ...detected, ...monthYear, file },
         }
       })
@@ -66,6 +67,7 @@ export default function UploadPage() {
 
   const handleDrop = useCallback((e: React.DragEvent) => {
     e.preventDefault()
+    setDragOver(false)
     const droppedFiles = Array.from(e.dataTransfer.files).filter(
       f => f.name.endsWith('.xlsx')
     )
@@ -86,7 +88,6 @@ export default function UploadPage() {
     try {
       const detectedFiles = files.filter(f => f.status === 'detected' && f.detected)
 
-      // Group by month+venue
       const groups = new Map<string, DetectedFile[]>()
       for (const f of detectedFiles) {
         const d = f.detected!
@@ -125,9 +126,7 @@ export default function UploadPage() {
             await saveProducts(records)
             fileTypes.push('products')
 
-            const giftCards = records.filter(
-              r => r.category.toLowerCase() === 'gift cards'
-            )
+            const giftCards = records.filter(r => r.category.toLowerCase() === 'gift cards')
             if (giftCards.length > 0) {
               const total = giftCards.reduce((sum, r) => sum + r.gross, 0)
               flags.push({
@@ -137,9 +136,7 @@ export default function UploadPage() {
               })
             }
 
-            const divergent = records.filter(
-              r => Math.abs(r.gross - r.net) > 1.0
-            )
+            const divergent = records.filter(r => Math.abs(r.gross - r.net) > 1.0)
             if (divergent.length > 0) {
               flags.push({
                 type: 'net_gross_divergence',
@@ -161,7 +158,6 @@ export default function UploadPage() {
           )
         }
 
-        // Check incomplete month
         if (operatingDayCount > 0) {
           const daysInMonth = new Date(first.year, first.month, 0).getDate()
           let expectedWeekdays = 0
@@ -205,50 +201,95 @@ export default function UploadPage() {
   const hasDetectedFiles = files.some(f => f.status === 'detected')
 
   return (
-    <div className="space-y-8">
-      <div className="text-center">
-        <h1 className="text-3xl font-bold text-lusu-navy">
-          LUSU <span className="text-lusu-cyan">Lens</span>
+    <div className="max-w-2xl mx-auto space-y-8 py-4">
+
+      {/* Hero */}
+      <div className="text-center space-y-1.5 pt-4">
+        <h1 className="text-2xl font-bold text-gray-900 tracking-tight">
+          Import POS Data
         </h1>
-        <p className="text-gray-600 mt-2">
-          Upload your monthly POS export files to get started
+        <p className="text-sm text-gray-500">
+          Drop your monthly Excel exports below — the app handles the rest locally, nothing is uploaded to a server.
         </p>
       </div>
 
       {/* File type explainer */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        <div className="bg-white rounded-xl p-5 shadow-sm border-l-4 border-lusu-navy">
-          <p className="font-semibold text-lusu-navy text-sm mb-1">Monthly Summary Sales</p>
-          <p className="text-xs text-gray-500 mb-2">Required for revenue metrics</p>
-          <ul className="text-xs text-gray-600 space-y-1">
-            <li className="flex items-center gap-1.5"><span className="w-1 h-1 rounded-full bg-lusu-navy shrink-0" />Daily gross & net sales, transactions</li>
-            <li className="flex items-center gap-1.5"><span className="w-1 h-1 rounded-full bg-lusu-navy shrink-0" />Tips, discounts, payment methods</li>
-            <li className="flex items-center gap-1.5"><span className="w-1 h-1 rounded-full bg-lusu-navy shrink-0" />Event day analysis, trends</li>
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+        <div className="bg-white rounded-xl p-5 shadow-card ring-1 ring-black/[0.06] border-t-2 border-t-lusu-navy">
+          <div className="flex items-center gap-2.5 mb-3">
+            <div className="w-7 h-7 rounded-md bg-lusu-navy/10 flex items-center justify-center shrink-0">
+              <BookOpen size={14} className="text-lusu-navy" strokeWidth={2} />
+            </div>
+            <p className="font-semibold text-gray-800 text-sm">Monthly Summary</p>
+          </div>
+          <p className="text-[11px] text-gray-400 uppercase tracking-wide font-medium mb-2.5">Required for revenue metrics</p>
+          <ul className="text-xs text-gray-500 space-y-1.5">
+            <li className="flex items-center gap-2">
+              <span className="w-1 h-1 rounded-full bg-gray-300 shrink-0" />
+              Daily gross &amp; net sales, transactions
+            </li>
+            <li className="flex items-center gap-2">
+              <span className="w-1 h-1 rounded-full bg-gray-300 shrink-0" />
+              Tips, discounts, payment methods
+            </li>
+            <li className="flex items-center gap-2">
+              <span className="w-1 h-1 rounded-full bg-gray-300 shrink-0" />
+              Event day analysis, weekly trends
+            </li>
           </ul>
         </div>
-        <div className="bg-white rounded-xl p-5 shadow-sm border-l-4 border-lusu-cyan">
-          <p className="font-semibold text-lusu-navy text-sm mb-1">Product Sales</p>
-          <p className="text-xs text-gray-500 mb-2">Required for product breakdown</p>
-          <ul className="text-xs text-gray-600 space-y-1">
-            <li className="flex items-center gap-1.5"><span className="w-1 h-1 rounded-full bg-lusu-cyan shrink-0" />Item-level sales by category & size</li>
-            <li className="flex items-center gap-1.5"><span className="w-1 h-1 rounded-full bg-lusu-cyan shrink-0" />Top items, alcohol/food split</li>
-            <li className="flex items-center gap-1.5"><span className="w-1 h-1 rounded-full bg-lusu-cyan shrink-0" />Draft vs packaged, catering, wings</li>
+
+        <div className="bg-white rounded-xl p-5 shadow-card ring-1 ring-black/[0.06] border-t-2 border-t-lusu-cyan">
+          <div className="flex items-center gap-2.5 mb-3">
+            <div className="w-7 h-7 rounded-md bg-lusu-cyan/10 flex items-center justify-center shrink-0">
+              <Package size={14} className="text-lusu-cyan" strokeWidth={2} />
+            </div>
+            <p className="font-semibold text-gray-800 text-sm">Product Sales</p>
+          </div>
+          <p className="text-[11px] text-gray-400 uppercase tracking-wide font-medium mb-2.5">Required for product breakdown</p>
+          <ul className="text-xs text-gray-500 space-y-1.5">
+            <li className="flex items-center gap-2">
+              <span className="w-1 h-1 rounded-full bg-gray-300 shrink-0" />
+              Item-level sales by category &amp; size
+            </li>
+            <li className="flex items-center gap-2">
+              <span className="w-1 h-1 rounded-full bg-gray-300 shrink-0" />
+              Top items, alcohol/food split
+            </li>
+            <li className="flex items-center gap-2">
+              <span className="w-1 h-1 rounded-full bg-gray-300 shrink-0" />
+              Draft vs packaged, catering, wings
+            </li>
           </ul>
         </div>
       </div>
 
       {/* Drop zone */}
       <div
-        onDragOver={e => e.preventDefault()}
+        onDragOver={e => { e.preventDefault(); setDragOver(true) }}
+        onDragLeave={() => setDragOver(false)}
         onDrop={handleDrop}
-        className="border-2 border-dashed border-lusu-navy/30 rounded-xl p-12 text-center hover:border-lusu-cyan transition-colors cursor-pointer bg-white"
         onClick={() => document.getElementById('fileInput')?.click()}
+        className={`relative flex flex-col items-center justify-center gap-4 rounded-xl p-12 text-center cursor-pointer transition-all duration-200 ${
+          dragOver
+            ? 'border-2 border-lusu-cyan bg-lusu-cyan/[0.03] ring-4 ring-lusu-cyan/10'
+            : 'border-2 border-dashed border-gray-200 bg-white hover:border-gray-300 hover:bg-gray-50/50'
+        }`}
       >
-        <Upload size={48} className="mx-auto text-lusu-navy/40 mb-4" />
-        <p className="text-lg font-medium text-lusu-navy">
-          Drag and drop .xlsx files here
-        </p>
-        <p className="text-sm text-gray-500 mt-1">Drop both files together for a complete month — or upload one at a time</p>
+        <div className={`w-12 h-12 rounded-xl flex items-center justify-center transition-colors ${
+          dragOver ? 'bg-lusu-cyan/10' : 'bg-gray-100'
+        }`}>
+          <Upload size={22} className={dragOver ? 'text-lusu-cyan' : 'text-gray-400'} strokeWidth={1.8} />
+        </div>
+        <div>
+          <p className="text-sm font-semibold text-gray-700">
+            {dragOver ? 'Release to add files' : 'Drag and drop .xlsx files here'}
+          </p>
+          <p className="text-xs text-gray-400 mt-1">
+            Drop both files at once for a complete month, or upload one at a time
+          </p>
+        </div>
+        <p className="text-xs text-lusu-cyan font-medium">or click to browse</p>
         <input
           id="fileInput"
           type="file"
@@ -261,83 +302,93 @@ export default function UploadPage() {
 
       {/* File statuses */}
       {files.length > 0 && (
-        <div className="bg-white rounded-xl p-6 shadow-sm space-y-3">
-          <h2 className="font-semibold text-lusu-navy">Files</h2>
-          {files.map((f, i) => (
-            <div key={i} className="flex items-center gap-3 text-sm">
-              {f.status === 'detected' && (
-                <CheckCircle size={18} className="text-green-500 shrink-0" />
-              )}
-              {f.status === 'error' && (
-                <XCircle size={18} className="text-red-500 shrink-0" />
-              )}
-              {f.status === 'parsing' && (
-                <Loader2 size={18} className="text-lusu-cyan animate-spin shrink-0" />
-              )}
-              {f.status === 'done' && (
-                <CheckCircle size={18} className="text-lusu-cyan shrink-0" />
-              )}
-              <span className={f.status === 'error' ? 'text-red-600' : ''}>
-                {f.label}
-              </span>
-            </div>
-          ))}
-
-          <button
-            onClick={handleProcess}
-            disabled={!hasDetectedFiles || processing}
-            className="mt-4 px-6 py-2.5 bg-lusu-cyan text-white font-medium rounded-lg hover:bg-lusu-cyan/90 disabled:opacity-50 disabled:cursor-not-allowed transition-colors flex items-center gap-2"
-          >
-            {processing && <Loader2 size={16} className="animate-spin" />}
-            {processing ? 'Processing...' : 'Process files'}
-          </button>
+        <div className="bg-white rounded-xl shadow-card ring-1 ring-black/[0.06] overflow-hidden">
+          <div className="px-5 py-4 border-b border-gray-100">
+            <h2 className="text-sm font-semibold text-gray-700">
+              Files queued
+            </h2>
+          </div>
+          <div className="divide-y divide-gray-50">
+            {files.map((f, i) => (
+              <div key={i} className="flex items-center gap-3 px-5 py-3 text-sm">
+                {f.status === 'detected' && (
+                  <CheckCircle size={16} className="text-emerald-500 shrink-0" />
+                )}
+                {f.status === 'error' && (
+                  <XCircle size={16} className="text-red-400 shrink-0" />
+                )}
+                {f.status === 'parsing' && (
+                  <Loader2 size={16} className="text-lusu-cyan animate-spin shrink-0" />
+                )}
+                {f.status === 'done' && (
+                  <CheckCircle size={16} className="text-lusu-cyan shrink-0" />
+                )}
+                <span className={f.status === 'error' ? 'text-red-500' : 'text-gray-600'}>
+                  {f.label}
+                </span>
+                {f.status === 'done' && (
+                  <span className="ml-auto text-[11px] text-emerald-500 font-medium">Done</span>
+                )}
+              </div>
+            ))}
+          </div>
+          <div className="px-5 py-4 border-t border-gray-100 bg-gray-50/50">
+            <button
+              onClick={handleProcess}
+              disabled={!hasDetectedFiles || processing}
+              className="flex items-center gap-2 px-5 py-2 bg-lusu-navy text-white text-sm font-semibold rounded-lg hover:bg-lusu-navy/90 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+            >
+              {processing
+                ? <><Loader2 size={14} className="animate-spin" /> Processing…</>
+                : <>Import files <ArrowRight size={14} /></>
+              }
+            </button>
+          </div>
         </div>
       )}
 
       {/* Upload history */}
       {uploads.length > 0 && (
-        <div className="bg-white rounded-xl p-6 shadow-sm">
-          <h2 className="font-semibold text-lusu-navy mb-4">Uploaded months</h2>
-          <div className="space-y-2">
+        <div className="bg-white rounded-xl shadow-card ring-1 ring-black/[0.06] overflow-hidden">
+          <div className="px-5 py-4 border-b border-gray-100">
+            <h2 className="text-sm font-semibold text-gray-700">
+              Uploaded months
+            </h2>
+          </div>
+          <div className="divide-y divide-gray-50">
             {uploads.map(u => {
               const monthName = new Date(u.year, u.month - 1).toLocaleString(
                 'default', { month: 'long' }
               )
               const venueLabel = u.venue === 'study' ? 'The Study' : 'The Outpost'
+              const accentColor = u.venue === 'study' ? 'text-study-gold' : 'text-lusu-navy'
               return (
                 <Link
                   key={u.id}
                   href={`/dashboard/${u.venue}`}
-                  className="flex items-center justify-between p-3 rounded-lg hover:bg-gray-50 transition-colors group"
+                  className="flex items-center gap-3.5 px-5 py-3.5 hover:bg-gray-50 transition-colors group"
                 >
-                  <div className="flex items-center gap-3">
-                    <FileSpreadsheet
-                      size={20}
-                      className={
-                        u.venue === 'study'
-                          ? 'text-study-gold'
-                          : 'text-outpost-black'
-                      }
-                    />
-                    <div>
-                      <span className="font-medium">
-                        {venueLabel} — {monthName} {u.year}
-                      </span>
-                      <span className="text-xs text-gray-500 ml-2">
-                        {u.operatingDayCount} days
-                        {u.fileTypes.length < 2 && ' (partial)'}
-                      </span>
-                    </div>
+                  <FileSpreadsheet size={18} className={`shrink-0 ${accentColor}`} strokeWidth={1.8} />
+                  <div className="flex-1 min-w-0">
+                    <span className="text-sm font-medium text-gray-800 block leading-snug">
+                      {venueLabel}
+                    </span>
+                    <span className="text-xs text-gray-400">
+                      {monthName} {u.year} · {u.operatingDayCount} days
+                      {u.fileTypes.length < 2 && ' · partial data'}
+                    </span>
                   </div>
-                  <span className="text-sm text-lusu-cyan opacity-0 group-hover:opacity-100 transition-opacity">
-                    View dashboard →
-                  </span>
+                  <ArrowRight
+                    size={14}
+                    className="shrink-0 text-gray-300 group-hover:text-lusu-cyan group-hover:translate-x-0.5 transition-all"
+                  />
                 </Link>
               )
             })}
           </div>
         </div>
       )}
+
     </div>
   )
 }
