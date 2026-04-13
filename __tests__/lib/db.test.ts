@@ -88,6 +88,22 @@ describe('db service', () => {
     expect(uploads).toHaveLength(2)
   })
 
+  it('does not delete products for a different venue', async () => {
+    const outpostProduct = { ...mockProduct, venue: 'outpost' as const }
+    await saveProducts([mockProduct, outpostProduct])
+    await deleteUploadData('study', 2024, 9)
+    const outpostProducts = await getProducts('outpost', 2024, 9)
+    expect(outpostProducts).toHaveLength(1)
+  })
+
+  it('does not delete products for a different month', async () => {
+    const octProduct = { ...mockProduct, date: '2024-10-03' }
+    await saveProducts([mockProduct, octProduct])
+    await deleteUploadData('study', 2024, 9)
+    const octProducts = await getProducts('study', 2024, 10)
+    expect(octProducts).toHaveLength(1)
+  })
+
   it('deletes upload data completely', async () => {
     await saveProducts([mockProduct])
     await saveSummaries([mockSummary])

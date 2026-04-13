@@ -1,10 +1,27 @@
-import { openDB, type IDBPDatabase } from 'idb'
+import { openDB, type IDBPDatabase, type DBSchema } from 'idb'
 import type { ProductRecord, DailySummary, UploadRecord, Venue } from '@/types'
 
 const DB_NAME = 'lusu_lens_db'
 const DB_VERSION = 1
 
-let dbPromise: Promise<IDBPDatabase<any>> | null = null
+interface LusuLensDB extends DBSchema {
+  uploads: {
+    key: string
+    value: UploadRecord
+  }
+  products: {
+    key: number
+    value: ProductRecord & { id?: number }
+    indexes: { venue_date: [string, string] }
+  }
+  summaries: {
+    key: number
+    value: DailySummary & { id?: number }
+    indexes: { venue_date: [string, string] }
+  }
+}
+
+let dbPromise: Promise<IDBPDatabase<LusuLensDB>> | null = null
 
 export async function resetDB() {
   if (dbPromise) {
@@ -39,7 +56,7 @@ export async function initDB() {
   return dbPromise
 }
 
-async function getDB() {
+async function getDB(): Promise<IDBPDatabase<LusuLensDB>> {
   if (!dbPromise) await initDB()
   return dbPromise!
 }
@@ -75,7 +92,7 @@ export async function getProducts(
   const db = await getDB()
   const all = await db.getAll('products')
   return all.filter(
-    (p: ProductRecord) =>
+    p =>
       p.venue === venue &&
       p.date.startsWith(`${year}-${String(month).padStart(2, '0')}`)
   )
@@ -89,7 +106,7 @@ export async function getSummaries(
   const db = await getDB()
   const all = await db.getAll('summaries')
   return all.filter(
-    (s: DailySummary) =>
+    s =>
       s.venue === venue &&
       s.date.startsWith(`${year}-${String(month).padStart(2, '0')}`)
   )
@@ -118,7 +135,7 @@ export async function deleteUploadData(
   const ptx = db.transaction('products', 'readwrite')
   for (const p of products) {
     if (p.venue === venue && p.date.startsWith(monthPrefix)) {
-      await ptx.store.delete(p.id)
+      await ptx.store.delete(p.id!)
     }
   }
   await ptx.done
@@ -127,7 +144,7 @@ export async function deleteUploadData(
   const stx = db.transaction('summaries', 'readwrite')
   for (const s of summaries) {
     if (s.venue === venue && s.date.startsWith(monthPrefix)) {
-      await stx.store.delete(s.id)
+      await stx.store.delete(s.id!)
     }
   }
   await stx.done

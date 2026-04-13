@@ -14,6 +14,7 @@ export function parseSummaryFile(
     const [month, day, year] = dateParts
     const date = new Date(year, month - 1, day)
     if (isNaN(date.getTime())) continue
+    const isoDate = `${year}-${String(month).padStart(2, '0')}-${String(day).padStart(2, '0')}`
 
     const sheet = workbook.Sheets[sheetName]
     const rows: any[][] = XLSX.utils.sheet_to_json(sheet, {
@@ -57,7 +58,7 @@ export function parseSummaryFile(
     }
 
     summaries.push({
-      date: date.toISOString().split('T')[0],
+      date: isoDate,
       venue,
       grossSales: getVal('Gross Sales'),
       autoPricingDiscounts: getVal('Auto Pricing Discounts'),

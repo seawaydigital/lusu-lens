@@ -14,6 +14,7 @@ export function parseProductFile(
     const [month, day, year] = dateParts
     const date = new Date(year, month - 1, day)
     if (isNaN(date.getTime())) continue
+    const isoDate = `${year}-${String(month).padStart(2, '0')}-${String(day).padStart(2, '0')}`
 
     const sheet = workbook.Sheets[sheetName]
     const rows: any[][] = XLSX.utils.sheet_to_json(sheet, {
@@ -34,7 +35,7 @@ export function parseProductFile(
       if (gross === 0 && (parseFloat(row[4]) || 0) === 0) continue
 
       records.push({
-        date: date.toISOString().split('T')[0],
+        date: isoDate,
         venue,
         item,
         size: row[1] ? String(row[1]).trim() : null,
