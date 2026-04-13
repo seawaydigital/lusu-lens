@@ -103,7 +103,7 @@ function OverviewContent() {
         {/* Study column */}
         <div className="space-y-4">
           <div className="flex items-center gap-2 mb-2">
-            <Image src="/lusu-lens/logos/study.png" alt="The Study" width={28} height={28} className="rounded" />
+            <Image src="/lusu-lens/logos/study.png" alt="The Study" width={36} height={36} className="rounded-lg" />
             <h2 className="font-semibold text-study-black">The Study</h2>
           </div>
           <div className="grid grid-cols-2 gap-3">
@@ -118,7 +118,7 @@ function OverviewContent() {
         {/* Outpost column */}
         <div className="space-y-4">
           <div className="flex items-center gap-2 mb-2">
-            <Image src="/lusu-lens/logos/outpost.png" alt="The Outpost" width={28} height={28} className="rounded" />
+            <Image src="/lusu-lens/logos/outpost.png" alt="The Outpost" width={36} height={36} className="rounded-lg" />
             <h2 className="font-semibold text-outpost-black">The Outpost</h2>
           </div>
           <div className="grid grid-cols-2 gap-3">

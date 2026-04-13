@@ -38,9 +38,9 @@ export default function Navbar() {
             <Image
               src="/lusu-lens/logos/lusu.png"
               alt="LUSU"
-              width={40}
+              width={70}
               height={40}
-              className="rounded"
+              className="object-contain"
             />
             <span className="text-xl font-bold tracking-tight">
               LUSU <span className="text-lusu-cyan">Lens</span>

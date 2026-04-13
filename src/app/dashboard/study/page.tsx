@@ -82,7 +82,7 @@ function StudyContent() {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-3">
-          <Image src="/lusu-lens/logos/study.png" alt="The Study" width={36} height={36} className="rounded" />
+          <Image src="/lusu-lens/logos/study.png" alt="The Study" width={48} height={48} className="rounded-lg" />
           <h1 className="text-2xl font-bold text-study-black">The Study Coffeehouse</h1>
         </div>
         <div className="flex items-center gap-3">

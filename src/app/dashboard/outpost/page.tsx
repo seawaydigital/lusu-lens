@@ -86,7 +86,7 @@ function OutpostContent() {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-3">
-          <Image src="/lusu-lens/logos/outpost.png" alt="The Outpost" width={36} height={36} className="rounded" />
+          <Image src="/lusu-lens/logos/outpost.png" alt="The Outpost" width={48} height={48} className="rounded-lg" />
           <h1 className="text-2xl font-bold text-outpost-black">The Outpost Campus Pub</h1>
         </div>
         <div className="flex items-center gap-3">
