@@ -20,6 +20,7 @@ import CategoryDonut from '@/components/shared/CategoryDonut'
 import TopItemsChart from '@/components/shared/TopItemsChart'
 import DowChart from '@/components/shared/DowChart'
 import PaymentMethodChart from '@/components/shared/PaymentMethodChart'
+import PaymentSummary from '@/components/shared/PaymentSummary'
 import DaypartChart from '@/components/shared/DaypartChart'
 import SectionMixChart from '@/components/shared/SectionMixChart'
 import WeeklyView from '@/components/shared/WeeklyView'
@@ -341,7 +342,10 @@ function StudyContent() {
           <span className="section-rule" />
         </div>
         {hasSummary ? (
-          <PaymentMethodChart summaries={summaries} />
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            <PaymentMethodChart summaries={summaries} />
+            <PaymentSummary summaries={summaries} />
+          </div>
         ) : (
           <MissingDataSection fileType="summary" venue="study" />
         )}
