@@ -34,63 +34,47 @@ export default function UploadPage() {
     initDB().then(() => getUploads().then(setUploads))
   }, [])
 
-  const processDroppedFiles = useCallback((droppedFiles: File[]) => {
+  // Detects, queues, and immediately processes all dropped/selected files
+  const processAndImport = useCallback(async (rawFiles: File[]) => {
     setFiles(prev => {
       const existingNames = new Set(prev.map(f => f.file.name + f.file.size))
-      const newFiles = droppedFiles.filter(
-        f => !existingNames.has(f.name + f.size)
-      )
-      const statuses: FileStatus[] = newFiles.map(file => {
-        const detected = detectFileType(file.name)
-        const monthYear = extractMonthYear(file.name)
-
-        if (!detected || !monthYear) {
-          return { file, status: 'error' as const, label: `Unrecognised file: ${file.name}` }
-        }
-
-        const monthName = new Date(monthYear.year, monthYear.month - 1).toLocaleString(
-          'default', { month: 'long' }
-        )
-        const venueLabel = detected.venue === 'study' ? 'Study' : 'Outpost'
-        const typeLabel  = detected.type === 'products' ? 'Product Sales' : 'Summary'
-
-        return {
-          file,
-          status: 'detected' as const,
-          label: `${venueLabel} — ${typeLabel} · ${monthName} ${monthYear.year}`,
-          detected: { ...detected, ...monthYear, file },
-        }
-      })
-      return [...prev, ...statuses]
+      return [...prev, ...rawFiles
+        .filter(f => !existingNames.has(f.name + f.size))
+        .map(file => {
+          const detected = detectFileType(file.name)
+          const monthYear = extractMonthYear(file.name)
+          if (!detected || !monthYear) {
+            return { file, status: 'error' as const, label: `Unrecognised file: ${file.name}` }
+          }
+          const monthName = new Date(monthYear.year, monthYear.month - 1).toLocaleString(
+            'default', { month: 'long' }
+          )
+          const venueLabel = detected.venue === 'study' ? 'Study' : 'Outpost'
+          const typeLabel  = detected.type === 'products' ? 'Product Sales' : 'Summary'
+          return {
+            file,
+            status: 'detected' as const,
+            label: `${venueLabel} — ${typeLabel} · ${monthName} ${monthYear.year}`,
+            detected: { ...detected, ...monthYear, file },
+          }
+        })
+      ]
     })
-  }, [])
 
-  const handleDrop = useCallback((e: React.DragEvent) => {
-    e.preventDefault()
-    setDragOver(false)
-    const droppedFiles = Array.from(e.dataTransfer.files).filter(
-      f => f.name.endsWith('.xlsx')
-    )
-    processDroppedFiles(droppedFiles)
-  }, [processDroppedFiles])
+    // Build detected list directly from rawFiles (don't wait for state)
+    const detectedFiles: DetectedFile[] = rawFiles.flatMap(file => {
+      const detected  = detectFileType(file.name)
+      const monthYear = extractMonthYear(file.name)
+      if (!detected || !monthYear) return []
+      return [{ ...detected, ...monthYear, file }]
+    })
 
-  const handleFileInput = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
-    if (e.target.files) {
-      const selected = Array.from(e.target.files).filter(
-        f => f.name.endsWith('.xlsx')
-      )
-      processDroppedFiles(selected)
-    }
-  }, [processDroppedFiles])
+    if (detectedFiles.length === 0) return
 
-  async function handleProcess() {
     setProcessing(true)
     try {
-      const detectedFiles = files.filter(f => f.status === 'detected' && f.detected)
-
       const groups = new Map<string, DetectedFile[]>()
-      for (const f of detectedFiles) {
-        const d = f.detected!
+      for (const d of detectedFiles) {
         const key = `${d.venue}_${d.year}_${d.month}`
         if (!groups.has(key)) groups.set(key, [])
         groups.get(key)!.push(d)
@@ -196,9 +180,22 @@ export default function UploadPage() {
     } finally {
       setProcessing(false)
     }
-  }
+  }, [])
 
-  const hasDetectedFiles = files.some(f => f.status === 'detected')
+  const handleDrop = useCallback((e: React.DragEvent) => {
+    e.preventDefault()
+    setDragOver(false)
+    const dropped = Array.from(e.dataTransfer.files).filter(f => f.name.endsWith('.xlsx'))
+    processAndImport(dropped)
+  }, [processAndImport])
+
+  const handleFileInput = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files) {
+      const selected = Array.from(e.target.files).filter(f => f.name.endsWith('.xlsx'))
+      processAndImport(selected)
+      e.target.value = ''  // reset so the same file can be re-selected if needed
+    }
+  }, [processAndImport])
 
   return (
     <div className="max-w-2xl mx-auto space-y-8 py-4">
@@ -279,17 +276,25 @@ export default function UploadPage() {
         <div className={`w-12 h-12 rounded-xl flex items-center justify-center transition-colors ${
           dragOver ? 'bg-lusu-cyan/10' : 'bg-gray-100'
         }`}>
-          <Upload size={22} className={dragOver ? 'text-lusu-cyan' : 'text-gray-400'} strokeWidth={1.8} />
+          {processing
+            ? <Loader2 size={22} className="text-lusu-cyan animate-spin" />
+            : <Upload size={22} className={dragOver ? 'text-lusu-cyan' : 'text-gray-400'} strokeWidth={1.8} />
+          }
         </div>
         <div>
           <p className="text-sm font-semibold text-gray-700">
-            {dragOver ? 'Release to add files' : 'Drag and drop .xlsx files here'}
+            {processing
+              ? 'Importing…'
+              : dragOver
+                ? 'Release to import'
+                : 'Drag and drop .xlsx files here'
+            }
           </p>
           <p className="text-xs text-gray-400 mt-1">
             Drop both files at once for a complete month, or upload one at a time
           </p>
         </div>
-        <p className="text-xs text-lusu-cyan font-medium">or click to browse</p>
+        {!processing && <p className="text-xs text-lusu-cyan font-medium">or click to browse</p>}
         <input
           id="fileInput"
           type="file"
@@ -300,29 +305,21 @@ export default function UploadPage() {
         />
       </div>
 
-      {/* File statuses */}
+      {/* Import status */}
       {files.length > 0 && (
         <div className="bg-white rounded-xl shadow-card ring-1 ring-black/[0.06] overflow-hidden">
           <div className="px-5 py-4 border-b border-gray-100">
             <h2 className="text-sm font-semibold text-gray-700">
-              Files queued
+              {processing ? 'Importing…' : 'Import complete'}
             </h2>
           </div>
           <div className="divide-y divide-gray-50">
             {files.map((f, i) => (
               <div key={i} className="flex items-center gap-3 px-5 py-3 text-sm">
-                {f.status === 'detected' && (
-                  <CheckCircle size={16} className="text-emerald-500 shrink-0" />
-                )}
-                {f.status === 'error' && (
-                  <XCircle size={16} className="text-red-400 shrink-0" />
-                )}
-                {f.status === 'parsing' && (
-                  <Loader2 size={16} className="text-lusu-cyan animate-spin shrink-0" />
-                )}
-                {f.status === 'done' && (
-                  <CheckCircle size={16} className="text-lusu-cyan shrink-0" />
-                )}
+                {f.status === 'detected' && <Loader2 size={16} className="text-gray-300 animate-spin shrink-0" />}
+                {f.status === 'error'    && <XCircle  size={16} className="text-red-400 shrink-0" />}
+                {f.status === 'parsing' && <Loader2  size={16} className="text-lusu-cyan animate-spin shrink-0" />}
+                {f.status === 'done'    && <CheckCircle size={16} className="text-emerald-500 shrink-0" />}
                 <span className={f.status === 'error' ? 'text-red-500' : 'text-gray-600'}>
                   {f.label}
                 </span>
@@ -331,18 +328,6 @@ export default function UploadPage() {
                 )}
               </div>
             ))}
-          </div>
-          <div className="px-5 py-4 border-t border-gray-100 bg-gray-50/50">
-            <button
-              onClick={handleProcess}
-              disabled={!hasDetectedFiles || processing}
-              className="flex items-center gap-2 px-5 py-2 bg-lusu-navy text-white text-sm font-semibold rounded-lg hover:bg-lusu-navy/90 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
-            >
-              {processing
-                ? <><Loader2 size={14} className="animate-spin" /> Processing…</>
-                : <>Import files <ArrowRight size={14} /></>
-              }
-            </button>
           </div>
         </div>
       )}
