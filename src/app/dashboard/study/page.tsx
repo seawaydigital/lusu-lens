@@ -311,7 +311,6 @@ function StudyContent() {
             {hasSummary && <DowChart summaries={summaries} accentColor="#C4A952" />}
             {hasProducts && <HotColdSplit products={products} />}
             {hasProducts && <SizeDistribution products={products} />}
-            {hasProducts && <SeasonalItemTracker hasMultipleMonths={studyUploads.length >= 2} />}
             {hasProducts && <LtoVsCoreChart products={products} />}
             {!hasSummary && <MissingDataSection fileType="summary" venue="study" />}
             {!hasProducts && <MissingDataSection fileType="products" venue="study" />}
@@ -328,6 +327,7 @@ function StudyContent() {
         {hasProducts ? (
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
             <FoodAttachRate products={products} />
+            <SeasonalItemTracker hasMultipleMonths={studyUploads.length >= 2} />
           </div>
         ) : (
           <MissingDataSection fileType="products" venue="study" />

@@ -36,7 +36,7 @@ function avgByDow(summaries: DailySummary[]): Record<number, number> {
 }
 
 function mlabel(u: UploadRecord) {
-  return new Date(u.year, u.month - 1).toLocaleString('default', { month: 'short', year: '2-digit' })
+  return new Date(u.year, u.month - 1).toLocaleString('default', { month: 'short', year: 'numeric' })
 }
 
 function pct(cur: number, prev: number) {
