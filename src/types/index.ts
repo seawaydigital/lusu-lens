@@ -75,3 +75,13 @@ export interface DetectedFile {
   year: number
   file: File
 }
+
+export type MenuTier = 'star' | 'plowhorse' | 'puzzle' | 'dog'
+
+export interface MenuEngineeringItem {
+  item: string
+  category: string
+  quantity: number
+  revenue: number
+  tier: MenuTier
+}
