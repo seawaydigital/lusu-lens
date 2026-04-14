@@ -221,3 +221,47 @@ describe('calcAlcoholCategoryTrend', () => {
     expect(result[1].month).toBe('2025-03')
   })
 })
+
+import { calcOutpostFoodAttach } from '../outpostMetrics'
+
+describe('calcOutpostFoodAttach', () => {
+  it('calculates overall food attach rate correctly', () => {
+    const products = [
+      makeOutpostProduct('Wings', 'food', 50, '2025-01-10'),
+      makeOutpostProduct('Beer', 'beer - draft', 50, '2025-01-10'),
+    ]
+    const result = calcOutpostFoodAttach(products, new Set())
+    expect(result.overall).toBeCloseTo(50)
+  })
+
+  it('excludes door revenue, catering, and events (CATERING_CATEGORIES) from totals', () => {
+    const products = [
+      makeOutpostProduct('Wings', 'food', 50, '2025-01-10'),
+      makeOutpostProduct('Cover', 'door revenue', 500, '2025-01-10'),
+      makeOutpostProduct('Catering', 'catering', 500, '2025-01-10'),
+      makeOutpostProduct('EventItem', 'events', 500, '2025-01-10'),
+    ]
+    const result = calcOutpostFoodAttach(products, new Set())
+    expect(result.overall).toBeCloseTo(100)
+    expect(result.totalGross).toBeCloseTo(50)
+  })
+
+  it('returns event = null when eventDays is empty', () => {
+    const products = [makeOutpostProduct('Wings', 'food', 50)]
+    const result = calcOutpostFoodAttach(products, new Set())
+    expect(result.event).toBeNull()
+  })
+
+  it('splits event vs regular correctly', () => {
+    const products = [
+      makeOutpostProduct('Wings', 'food', 20, '2025-01-10'),
+      makeOutpostProduct('Beer', 'beer - draft', 80, '2025-01-10'),
+      makeOutpostProduct('Wings', 'food', 10, '2025-01-15'),
+      makeOutpostProduct('Beer', 'beer - draft', 90, '2025-01-15'),
+    ]
+    const eventDays = new Set(['2025-01-15'])
+    const result = calcOutpostFoodAttach(products, eventDays)
+    expect(result.regular).toBeCloseTo(20)
+    expect(result.event).toBeCloseTo(10)
+  })
+})

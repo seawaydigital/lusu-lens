@@ -150,3 +150,43 @@ export function calcAlcoholCategoryTrend(
       }
     })
 }
+
+export function calcOutpostFoodAttach(
+  products: ProductRecord[],
+  eventDays: Set<string>
+): { overall: number; regular: number; event: number | null; foodGross: number; totalGross: number } {
+  // Exclude all CATERING_CATEGORIES (door revenue, catering, events)
+  const eligible = products.filter(p => !CATERING_CATEGORIES.has(p.category.toLowerCase()))
+
+  const dateMap = new Map<string, { food: number; total: number }>()
+  for (const p of eligible) {
+    if (!dateMap.has(p.date)) dateMap.set(p.date, { food: 0, total: 0 })
+    const entry = dateMap.get(p.date)!
+    entry.total += p.gross
+    if (p.category.toLowerCase() === 'food') entry.food += p.gross
+  }
+
+  const foodGross = eligible.filter(p => p.category.toLowerCase() === 'food').reduce((sum, p) => sum + p.gross, 0)
+  const totalGross = eligible.reduce((sum, p) => sum + p.gross, 0)
+
+  const dates = Array.from(dateMap.entries())
+  const toRate = ([, { food, total }]: [string, { food: number; total: number }]) =>
+    total > 0 ? food / total : 0
+
+  const allRates = dates.map(toRate)
+  const overall = allRates.length > 0
+    ? (allRates.reduce((sum, r) => sum + r, 0) / allRates.length) * 100
+    : 0
+
+  const regularDates = dates.filter(([date]) => !eventDays.has(date))
+  const eventDates = dates.filter(([date]) => eventDays.has(date))
+
+  const regular = regularDates.length > 0
+    ? (regularDates.map(toRate).reduce((sum, r) => sum + r, 0) / regularDates.length) * 100
+    : 0
+  const event = eventDates.length > 0
+    ? (eventDates.map(toRate).reduce((sum, r) => sum + r, 0) / eventDates.length) * 100
+    : null
+
+  return { overall, regular, event, foodGross, totalGross }
+}
