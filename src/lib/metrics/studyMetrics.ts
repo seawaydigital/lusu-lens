@@ -96,3 +96,30 @@ export function findSeasonalItems(
     removedItems: removedItems.sort((a, b) => b.lastRevenue - a.lastRevenue),
   }
 }
+
+export function calcSizeDistributionTrend(
+  products: ProductRecord[]
+): Array<{ month: string; sizes: Record<string, number> }> {
+  const sized = products.filter(p => p.size !== null)
+  if (sized.length === 0) return []
+
+  const monthMap = new Map<string, Map<string, number>>()
+  for (const p of sized) {
+    const month = p.date.slice(0, 7) // YYYY-MM
+    const size = p.size as string
+    if (!monthMap.has(month)) monthMap.set(month, new Map())
+    const sizeMap = monthMap.get(month)!
+    sizeMap.set(size, (sizeMap.get(size) || 0) + p.gross)
+  }
+
+  return Array.from(monthMap.entries())
+    .sort(([a], [b]) => a.localeCompare(b))
+    .map(([month, sizeMap]) => {
+      const total = Array.from(sizeMap.values()).reduce((sum, v) => sum + v, 0)
+      const sizes: Record<string, number> = {}
+      for (const [size, rev] of Array.from(sizeMap.entries())) {
+        sizes[size] = total > 0 ? (rev / total) * 100 : 0
+      }
+      return { month, sizes }
+    })
+}

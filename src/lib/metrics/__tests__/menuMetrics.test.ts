@@ -1,4 +1,5 @@
 import { calcMenuEngineering } from '../sharedMetrics'
+import { calcSizeDistributionTrend } from '../studyMetrics'
 import type { ProductRecord } from '@/types'
 
 function makeProduct(item: string, category: string, quantity: number, gross: number): ProductRecord {
@@ -74,5 +75,36 @@ describe('calcMenuEngineering', () => {
     const latte = result.find(r => r.item === 'Latte')
     expect(latte?.quantity).toBe(50)
     expect(latte?.revenue).toBe(200)
+  })
+})
+
+describe('calcSizeDistributionTrend', () => {
+  it('returns empty array when no products have a size', () => {
+    const products = [makeProduct('Latte', 'Coffee', 10, 50)]
+    expect(calcSizeDistributionTrend(products)).toEqual([])
+  })
+
+  it('returns single entry when all products are in the same month', () => {
+    const p1: ProductRecord = { ...makeProduct('Latte', 'Coffee', 10, 100), size: 'Large', date: '2025-01-10' }
+    const p2: ProductRecord = { ...makeProduct('Latte', 'Coffee', 20, 100), size: 'Small', date: '2025-01-15' }
+    const result = calcSizeDistributionTrend([p1, p2])
+    expect(result).toHaveLength(1)
+    expect(result[0].month).toBe('2025-01')
+  })
+
+  it('calculates percentages correctly within a month', () => {
+    const p1: ProductRecord = { ...makeProduct('Latte', 'Coffee', 10, 75), size: 'Large', date: '2025-01-10' }
+    const p2: ProductRecord = { ...makeProduct('Latte', 'Coffee', 10, 25), size: 'Small', date: '2025-01-15' }
+    const result = calcSizeDistributionTrend([p1, p2])
+    expect(result[0].sizes['Large']).toBeCloseTo(75)
+    expect(result[0].sizes['Small']).toBeCloseTo(25)
+  })
+
+  it('returns entries sorted by month ascending', () => {
+    const p1: ProductRecord = { ...makeProduct('Latte', 'Coffee', 10, 100), size: 'Large', date: '2025-03-01' }
+    const p2: ProductRecord = { ...makeProduct('Latte', 'Coffee', 10, 100), size: 'Large', date: '2025-01-01' }
+    const result = calcSizeDistributionTrend([p1, p2])
+    expect(result[0].month).toBe('2025-01')
+    expect(result[1].month).toBe('2025-03')
   })
 })
