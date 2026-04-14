@@ -27,6 +27,8 @@ import HotColdSplit from '@/components/study/HotColdSplit'
 import FoodAttachRate from '@/components/study/FoodAttachRate'
 import SizeDistribution from '@/components/study/SizeDistribution'
 import SeasonalItemTracker from '@/components/study/SeasonalItemTracker'
+import MenuAbcAnalysis from '@/components/shared/MenuAbcAnalysis'
+import LtoVsCoreChart from '@/components/study/LtoVsCoreChart'
 import AutoInsights from '@/components/shared/AutoInsights'
 import ExportButton from '@/components/shared/ExportButton'
 import MissingDataSection from '@/components/shared/MissingDataSection'
@@ -266,6 +268,7 @@ function StudyContent() {
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
             <CategoryDonut products={products} />
             <TopItemsChart products={products} accentColor="#C4A952" />
+            <MenuAbcAnalysis products={products} venue="study" />
           </div>
         ) : (
           <MissingDataSection fileType="products" venue="study" />
@@ -296,6 +299,7 @@ function StudyContent() {
             {hasProducts && <FoodAttachRate products={products} />}
             {hasProducts && <SizeDistribution products={products} />}
             {hasProducts && <SeasonalItemTracker hasMultipleMonths={studyUploads.length >= 2} />}
+            {hasProducts && <LtoVsCoreChart products={products} />}
             {!hasSummary && <MissingDataSection fileType="summary" venue="study" />}
             {!hasProducts && <MissingDataSection fileType="products" venue="study" />}
           </div>

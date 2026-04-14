@@ -30,6 +30,9 @@ import HappyHourImpact from '@/components/outpost/HappyHourImpact'
 import FridayWingsTracker from '@/components/outpost/FridayWingsTracker'
 import CateringRevenue from '@/components/outpost/CateringRevenue'
 import DoorRevenueTracker from '@/components/outpost/DoorRevenueTracker'
+import AlcoholCategoryTrend from '@/components/outpost/AlcoholCategoryTrend'
+import OutpostFoodAttach from '@/components/outpost/OutpostFoodAttach'
+import MenuAbcAnalysis from '@/components/shared/MenuAbcAnalysis'
 import AutoInsights from '@/components/shared/AutoInsights'
 import ExportButton from '@/components/shared/ExportButton'
 import MissingDataSection from '@/components/shared/MissingDataSection'
@@ -297,6 +300,7 @@ function OutpostContent() {
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
             <CategoryDonut products={products} excludeGiftCards showCateringDistinct />
             <TopItemsChart products={products} accentColor="#0D0D0D" excludeCategories={['CATERING', 'Gift Cards']} />
+            <MenuAbcAnalysis products={products} venue="outpost" />
           </div>
         ) : (
           <MissingDataSection fileType="products" venue="outpost" />
@@ -324,6 +328,7 @@ function OutpostContent() {
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
             {hasSummary && <DowChart summaries={summaries} accentColor="#0D0D0D" eventDays={eventDays} showEventToggle />}
             {hasProducts && <AlcoholFoodSplit products={products} />}
+            {hasProducts && <AlcoholCategoryTrend products={products} />}
             {hasProducts && <DraftVsPackaged products={products} />}
             {hasSummary && <HappyHourImpact summaries={summaries} />}
             {!hasSummary && <MissingDataSection fileType="summary" venue="outpost" />}
@@ -340,6 +345,7 @@ function OutpostContent() {
         </div>
         {hasProducts ? (
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            <OutpostFoodAttach products={products} eventDays={eventDates} />
             <FridayWingsTracker products={products} />
             <CateringRevenue products={products} />
           </div>
