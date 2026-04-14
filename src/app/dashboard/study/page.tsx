@@ -29,6 +29,8 @@ import FoodAttachRate from '@/components/study/FoodAttachRate'
 import SizeDistribution from '@/components/study/SizeDistribution'
 import SeasonalItemTracker from '@/components/study/SeasonalItemTracker'
 import MenuAbcAnalysis from '@/components/shared/MenuAbcAnalysis'
+import ParetoChart from '@/components/shared/ParetoChart'
+import SeasonalVolatility from '@/components/shared/SeasonalVolatility'
 import LtoVsCoreChart from '@/components/study/LtoVsCoreChart'
 import AutoInsights from '@/components/shared/AutoInsights'
 import SectionNav from '@/components/shared/SectionNav'
@@ -252,7 +254,10 @@ function StudyContent() {
                 />
               )}
             </div>
-            <DailyTrendChart summaries={summaries} accentColor="#C4A952" />
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+              <DailyTrendChart summaries={summaries} accentColor="#C4A952" />
+              <SeasonalVolatility summaries={summaries} accentColor="#C4A952" />
+            </div>
           </>
         ) : (
           <MissingDataSection fileType="summary" venue="study" />
@@ -284,6 +289,7 @@ function StudyContent() {
             <CategoryDonut products={products} />
             <TopItemsChart products={products} accentColor="#C4A952" />
             <MenuAbcAnalysis products={products} venue="study" />
+            <ParetoChart products={products} accentColor="#C4A952" />
           </div>
         ) : (
           <MissingDataSection fileType="products" venue="study" />

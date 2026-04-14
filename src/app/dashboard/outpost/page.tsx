@@ -34,6 +34,8 @@ import DoorRevenueTracker from '@/components/outpost/DoorRevenueTracker'
 import AlcoholCategoryTrend from '@/components/outpost/AlcoholCategoryTrend'
 import OutpostFoodAttach from '@/components/outpost/OutpostFoodAttach'
 import MenuAbcAnalysis from '@/components/shared/MenuAbcAnalysis'
+import ParetoChart from '@/components/shared/ParetoChart'
+import SeasonalVolatility from '@/components/shared/SeasonalVolatility'
 import AutoInsights from '@/components/shared/AutoInsights'
 import SectionNav from '@/components/shared/SectionNav'
 import CollapsibleSection from '@/components/shared/CollapsibleSection'
@@ -277,12 +279,15 @@ function OutpostContent() {
                 accentColor="border-outpost-black"
               />
             </div>
-            <DailyTrendChart
-              summaries={summaries}
-              accentColor="#0D0D0D"
-              eventDays={eventDays}
-              showRollingAvg
-            />
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+              <DailyTrendChart
+                summaries={summaries}
+                accentColor="#0D0D0D"
+                eventDays={eventDays}
+                showRollingAvg
+              />
+              <SeasonalVolatility summaries={summaries} accentColor="#0D0D0D" />
+            </div>
           </>
         ) : (
           <MissingDataSection fileType="summary" venue="outpost" />
@@ -314,6 +319,7 @@ function OutpostContent() {
             <CategoryDonut products={products} excludeGiftCards showCateringDistinct />
             <TopItemsChart products={products} accentColor="#0D0D0D" excludeCategories={['CATERING', 'Gift Cards']} />
             <MenuAbcAnalysis products={products} venue="outpost" />
+            <ParetoChart products={products} accentColor="#0D0D0D" excludeCategories={['CATERING', 'Gift Cards']} />
           </div>
         ) : (
           <MissingDataSection fileType="products" venue="outpost" />
