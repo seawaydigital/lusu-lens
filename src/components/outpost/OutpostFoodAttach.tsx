@@ -19,6 +19,10 @@ export default function OutpostFoodAttach({ products, eventDays }: OutpostFoodAt
   const insight = useMemo(() => {
     const { overall, regular, event } = result
     if (event !== null) {
+      // Guard: if regular === 0, all days were event days — no valid baseline to compare
+      if (regular === 0) {
+        return 'Food attach rate is on target (30% benchmark)'
+      }
       if (event > regular) {
         return 'Food ordering is stronger on event nights — good F&B synergy'
       }
