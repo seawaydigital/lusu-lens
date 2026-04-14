@@ -36,6 +36,7 @@ export interface MenuEngineeringItem {
 | Function | File | Used by |
 |---|---|---|
 | `calcMenuEngineering(products)` | `sharedMetrics.ts` | `MenuAbcAnalysis` |
+> **Note:** `sharedMetrics.ts` currently only imports `DailySummary`. Adding `calcMenuEngineering` requires adding `ProductRecord` to its import: `import type { DailySummary, ProductRecord } from '@/types'`.
 | `calcSizeDistributionTrend(products)` | `studyMetrics.ts` | `SizeDistribution` |
 | `calcLtoVsCore(products)` | `studyMetrics.ts` | `LtoVsCoreChart` |
 | `calcAlcoholCategoryTrend(products)` | `outpostMetrics.ts` | `AlcoholCategoryTrend` |
@@ -100,7 +101,7 @@ Track whether upselling to larger sizes is improving or declining over time — 
 
 ### Algorithm (`calcSizeDistributionTrend`)
 1. Filter products to those with non-null `size`
-2. Group by month (`YYYY-M` key from `date`)
+2. Group by month using `date.slice(0, 7)` → yields `'YYYY-MM'` (ISO zero-padded, e.g. `'2025-01'`)
 3. For each month: compute each size's revenue as `%` of that month's total sized-drink revenue
 4. Return `{ month: string; sizes: Record<string, number> }[]` sorted by month ascending
 
@@ -111,7 +112,11 @@ Track whether upselling to larger sizes is improving or declining over time — 
 - Line colors assigned from a fixed palette cycling through: study-gold, lusu-cyan, lusu-navy, gray
 
 ### Props — no change to existing props signature
-Trend data derived internally from the same `products: ProductRecord[]` already passed.
+Trend data derived internally from the same `products: ProductRecord[]` already passed. The number of distinct months is detected inside the component — no new prop needed:
+```ts
+const monthCount = Array.from(new Set(products.map(p => p.date.slice(0, 7)))).length
+```
+The Trend tab is hidden when `monthCount < 2`.
 
 ### Edge cases
 - No sized products in data: existing null-return behaviour unchanged
@@ -126,8 +131,8 @@ Show whether limited-time/seasonal items are adding net-new revenue or cannibali
 
 ### Algorithm (`calcLtoVsCore`)
 **Multi-month path (2+ months selected):**
-1. Determine all unique months in the dataset
-2. For each item, count how many months it appears in
+1. Determine all unique months in the dataset by slicing `date.slice(0, 7)` → yields `'YYYY-MM'` (ISO zero-padded). All `month` fields in returned data use this `'YYYY-MM'` format. Display labels are formatted for readability (e.g. `'Jan 2025'`) but the key used for grouping and joining is always `'YYYY-MM'`.
+2. For each item, count how many distinct `'YYYY-MM'` months it appears in
 3. `core` = appears in ≥ 50% of months; `lto` = appears in < 50% of months
 4. Group by month → sum `core` gross and `lto` gross per month
 5. Return `{ month: string; core: number; lto: number }[]` + `ltoItems: { item: string; months: string[]; revenue: number }[]`
@@ -139,7 +144,7 @@ Show whether limited-time/seasonal items are adding net-new revenue or cannibali
 - **Stacked bar chart** by month: Core = study-gold, LTO = lusu-cyan
 - **LTO items table** below: item, active months, total revenue. Sorted by revenue descending.
 - **Insight line**: `"LTO items contributed X% of revenue. Core revenue [grew / held steady / declined] while LTOs were active."`
-  - "grew" = core MoM delta > +3%, "declined" = < -3%, otherwise "held steady"
+  - Compare **first month core revenue vs last month core revenue** (first-to-last overall delta). "grew" = delta > +3%, "declined" = delta < -3%, otherwise "held steady". This applies for 2-month and 3+ month datasets alike — it measures the net direction over the full selected period.
 
 ### Props
 ```ts
@@ -159,12 +164,14 @@ Study dashboard, Products section, below `SeasonalItemTracker`.
 Show whether beer, spirits, or wine is gaining or losing share over time — informs stocking, promotions, and specials decisions.
 
 ### Algorithm (`calcAlcoholCategoryTrend`)
-1. Filter to alcohol-only products using existing `ALCOHOL_CATEGORIES` set
+> **Note:** `ALCOHOL_CATEGORIES` is a module-local (non-exported) `const` in `outpostMetrics.ts`. `calcAlcoholCategoryTrend` lives in the same file and reuses it directly — do not re-declare or import it.
+
+1. Filter to alcohol-only products by checking `ALCOHOL_CATEGORIES.has(p.category.toLowerCase())` — reuse the module-local constant already in `outpostMetrics.ts`
 2. Map categories to buckets:
    - **Beer**: `beer - draft`, `beer & coolers - bottles/cans`
    - **Spirits**: `liquor`
    - **Wine**: `wine`
-   - **Other**: remaining ALCOHOL_CATEGORIES members
+   - **Other**: remaining `ALCOHOL_CATEGORIES` members including `study alcohol` (expected count = 0 for Outpost data, but handled gracefully as a catch-all)
 3. Group by month → compute each bucket as % of that month's total alcohol revenue
 4. Return `{ month: string; beer: number; spirits: number; wine: number; other: number }[]`
 
@@ -178,9 +185,9 @@ Show whether beer, spirits, or wine is gaining or losing share over time — inf
 ```ts
 interface AlcoholCategoryTrendProps {
   products: ProductRecord[]
-  selectedMonths: string[]  // e.g. ['2025-1', '2025-2'] — for determining single vs multi
 }
 ```
+Single-month detection uses the same approach as `SizeDistribution`: derive distinct month count internally from product dates — `Array.from(new Set(products.map(p => p.date.slice(0, 7)))).length`. No `selectedMonths` prop needed. Month keys throughout are `'YYYY-MM'` (ISO zero-padded, consistent with Features 2 and 3).
 
 ### Placement
 Outpost dashboard, Alcohol & Beverage section, new card below `AlcoholFoodSplit`.
@@ -197,9 +204,9 @@ Track what % of Outpost revenue comes from food, and whether that rate drops on 
 calcOutpostFoodAttach(
   products: ProductRecord[],
   eventDays: Set<string>  // ISO date strings from detectEventDays()
-): { overall: number; regular: number; event: number; foodGross: number; totalGross: number }
+): { overall: number; regular: number; event: number | null; foodGross: number; totalGross: number }
 ```
-1. Exclude `door revenue` and `catering` categories (same exclusions as `calcAlcoholFoodSplit`)
+1. Exclude `door revenue`, `catering`, and `events` categories — all three members of `CATERING_CATEGORIES` (same exclusions as `calcAlcoholFoodSplit`). Use `p.category.toLowerCase()` before the `Set.has()` check, consistent with every other category filter in `outpostMetrics.ts`
 2. For each day, compute `foodGross / totalGross`
 3. Average across all days → `overall`
 4. Split by event vs regular using `eventDays` set → `event` and `regular`
@@ -249,4 +256,5 @@ Outpost dashboard, Food section, above `FridayWingsTracker`.
 - [ ] `calcLtoVsCore` classifies items correctly at exactly 50% threshold
 - [ ] Alcohol trend renders as horizontal bar (1 month) and stacked bar (2+ months)
 - [ ] `calcOutpostFoodAttach` event/regular split matches `detectEventDays()` output
+- [ ] `OutpostFoodAttach` renders correctly when `event` is `null` (no event days detected) — split bar hidden, insight falls back to 30% benchmark
 - [ ] `npm run build` passes with no TypeScript errors
