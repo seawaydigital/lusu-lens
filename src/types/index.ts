@@ -76,7 +76,7 @@ export interface DetectedFile {
   file: File
 }
 
-export type MenuTier = 'star' | 'plowhorse' | 'puzzle' | 'dog'
+export type MenuTier = 'bestseller' | 'hightraffic' | 'highvalue' | 'slowmover'
 
 export interface MenuEngineeringItem {
   item: string

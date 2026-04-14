@@ -15,7 +15,7 @@ describe('calcMenuEngineering', () => {
     expect(calcMenuEngineering(products)).toEqual([])
   })
 
-  it('assigns star to items above both medians', () => {
+  it('assigns bestseller to items above both medians', () => {
     const products = [
       makeProduct('A', 'Coffee', 50, 200),
       makeProduct('B', 'Food', 50, 50),
@@ -24,10 +24,10 @@ describe('calcMenuEngineering', () => {
     ]
     const result = calcMenuEngineering(products)
     const a = result.find(r => r.item === 'A')
-    expect(a?.tier).toBe('star')
+    expect(a?.tier).toBe('bestseller')
   })
 
-  it('assigns dog to items below both medians', () => {
+  it('assigns slowmover to items below both medians', () => {
     const products = [
       makeProduct('A', 'Coffee', 50, 200),
       makeProduct('B', 'Food', 50, 50),
@@ -36,10 +36,10 @@ describe('calcMenuEngineering', () => {
     ]
     const result = calcMenuEngineering(products)
     const d = result.find(r => r.item === 'D')
-    expect(d?.tier).toBe('dog')
+    expect(d?.tier).toBe('slowmover')
   })
 
-  it('assigns plowhorse to high-volume low-revenue items', () => {
+  it('assigns hightraffic to high-volume low-revenue items', () => {
     const products = [
       makeProduct('A', 'Coffee', 50, 200),
       makeProduct('B', 'Food', 50, 50),
@@ -48,10 +48,10 @@ describe('calcMenuEngineering', () => {
     ]
     const result = calcMenuEngineering(products)
     const b = result.find(r => r.item === 'B')
-    expect(b?.tier).toBe('plowhorse')
+    expect(b?.tier).toBe('hightraffic')
   })
 
-  it('assigns puzzle to low-volume high-revenue items', () => {
+  it('assigns highvalue to low-volume high-revenue items', () => {
     const products = [
       makeProduct('A', 'Coffee', 50, 200),
       makeProduct('B', 'Food', 50, 50),
@@ -60,7 +60,7 @@ describe('calcMenuEngineering', () => {
     ]
     const result = calcMenuEngineering(products)
     const c = result.find(r => r.item === 'C')
-    expect(c?.tier).toBe('puzzle')
+    expect(c?.tier).toBe('highvalue')
   })
 
   it('aggregates multiple rows for the same item before classifying', () => {

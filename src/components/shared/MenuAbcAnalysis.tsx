@@ -9,24 +9,24 @@ import { calcMenuEngineering, formatCurrency, medianOf } from '@/lib/metrics/sha
 import type { ProductRecord, MenuEngineeringItem, MenuTier } from '@/types'
 
 const TIER_COLORS: Record<MenuTier, string> = {
-  star: '#C4A952',
-  plowhorse: '#00B4E6',
-  puzzle: '#7C3AED',
-  dog: '#9CA3AF',
+  bestseller: '#C4A952',
+  hightraffic: '#00B4E6',
+  highvalue: '#7C3AED',
+  slowmover: '#9CA3AF',
 }
 
 const TIER_LABELS: Record<MenuTier, string> = {
-  star: 'Stars',
-  plowhorse: 'Plowhorses',
-  puzzle: 'Puzzles',
-  dog: 'Dogs',
+  bestseller: 'Best Sellers',
+  hightraffic: 'High Traffic',
+  highvalue: 'High Value',
+  slowmover: 'Slow Movers',
 }
 
 const TIER_DESCRIPTIONS: Record<MenuTier, string> = {
-  star: 'High volume + high revenue. Keep and promote.',
-  plowhorse: 'High volume, low revenue. Review pricing.',
-  puzzle: 'Low volume, high revenue. Reposition and promote.',
-  dog: 'Low volume, low revenue. Consider removing.',
+  bestseller: 'High volume + high revenue. Keep and promote.',
+  hightraffic: 'High volume, lower revenue. Review pricing or bundle.',
+  highvalue: 'Lower volume, high revenue. Promote harder — these are underordered.',
+  slowmover: 'Low volume, lower revenue. Consider removing or reworking.',
 }
 
 interface MenuAbcAnalysisProps {
@@ -53,7 +53,7 @@ function ScatterTooltip({ active, payload }: TooltipProps) {
 }
 
 export default function MenuAbcAnalysis({ products, venue }: MenuAbcAnalysisProps) {
-  const [activeTab, setActiveTab] = useState<MenuTier>('dog')
+  const [activeTab, setActiveTab] = useState<MenuTier>('slowmover')
 
   const items = useMemo(() => calcMenuEngineering(products), [products])
 
@@ -67,12 +67,12 @@ export default function MenuAbcAnalysis({ products, venue }: MenuAbcAnalysisProp
   }, [items])
 
   const tabCounts = useMemo(() => {
-    const counts: Record<MenuTier, number> = { star: 0, plowhorse: 0, puzzle: 0, dog: 0 }
+    const counts: Record<MenuTier, number> = { bestseller: 0, hightraffic: 0, highvalue: 0, slowmover: 0 }
     for (const i of items) counts[i.tier]++
     return counts
   }, [items])
 
-  const tabs: MenuTier[] = ['star', 'plowhorse', 'puzzle', 'dog']
+  const tabs: MenuTier[] = ['bestseller', 'hightraffic', 'highvalue', 'slowmover']
   const tabItems = useMemo(
     () => items.filter(i => i.tier === activeTab).sort((a, b) => b.revenue - a.revenue),
     [items, activeTab]

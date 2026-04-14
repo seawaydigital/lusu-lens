@@ -97,10 +97,10 @@ export function calcMenuEngineering(products: ProductRecord[]): MenuEngineeringI
 
   return items.map(({ item, category, quantity, revenue }) => {
     let tier: MenuTier
-    if (quantity >= medianQty && revenue >= medianRev) tier = 'star'
-    else if (quantity >= medianQty && revenue < medianRev) tier = 'plowhorse'
-    else if (quantity < medianQty && revenue >= medianRev) tier = 'puzzle'
-    else tier = 'dog'
+    if (quantity >= medianQty && revenue >= medianRev) tier = 'bestseller'
+    else if (quantity >= medianQty && revenue < medianRev) tier = 'hightraffic'
+    else if (quantity < medianQty && revenue >= medianRev) tier = 'highvalue'
+    else tier = 'slowmover'
     return { item, category, quantity, revenue, tier }
   })
 }
