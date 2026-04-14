@@ -123,3 +123,51 @@ export function calcSizeDistributionTrend(
       return { month, sizes }
     })
 }
+
+export function calcLtoVsCore(products: ProductRecord[]): {
+  data: Array<{ month: string; core: number; lto: number }>
+  ltoItems: Array<{ item: string; months: string[]; revenue: number }>
+} | null {
+  const months = Array.from(new Set(products.map(p => p.date.slice(0, 7))))
+  if (months.length < 2) return null
+
+  const totalMonths = months.length
+
+  const itemMonths = new Map<string, Set<string>>()
+  const itemRevenue = new Map<string, number>()
+  for (const p of products) {
+    const month = p.date.slice(0, 7)
+    if (!itemMonths.has(p.item)) itemMonths.set(p.item, new Set())
+    itemMonths.get(p.item)!.add(month)
+    itemRevenue.set(p.item, (itemRevenue.get(p.item) || 0) + p.gross)
+  }
+
+  const coreItems = new Set<string>()
+  const ltoItems = new Set<string>()
+  for (const [item, monthSet] of Array.from(itemMonths.entries())) {
+    if (monthSet.size / totalMonths >= 0.5) coreItems.add(item)
+    else ltoItems.add(item)
+  }
+
+  const monthData = new Map<string, { core: number; lto: number }>()
+  for (const month of months) monthData.set(month, { core: 0, lto: 0 })
+  for (const p of products) {
+    const month = p.date.slice(0, 7)
+    const entry = monthData.get(month)!
+    if (coreItems.has(p.item)) entry.core += p.gross
+    else if (ltoItems.has(p.item)) entry.lto += p.gross
+  }
+
+  const sortedMonths = Array.from(monthData.keys()).sort()
+  const data = sortedMonths.map(month => ({ month, ...monthData.get(month)! }))
+
+  const ltoItemsArray = Array.from(ltoItems)
+    .map(item => ({
+      item,
+      months: Array.from(itemMonths.get(item)!),
+      revenue: itemRevenue.get(item) || 0,
+    }))
+    .sort((a, b) => b.revenue - a.revenue)
+
+  return { data, ltoItems: ltoItemsArray }
+}

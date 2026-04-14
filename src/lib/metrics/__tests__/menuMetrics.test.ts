@@ -1,5 +1,5 @@
 import { calcMenuEngineering } from '../sharedMetrics'
-import { calcSizeDistributionTrend } from '../studyMetrics'
+import { calcSizeDistributionTrend, calcLtoVsCore } from '../studyMetrics'
 import type { ProductRecord } from '@/types'
 
 function makeProduct(item: string, category: string, quantity: number, gross: number): ProductRecord {
@@ -106,5 +106,64 @@ describe('calcSizeDistributionTrend', () => {
     const result = calcSizeDistributionTrend([p1, p2])
     expect(result[0].month).toBe('2025-01')
     expect(result[1].month).toBe('2025-03')
+  })
+})
+
+describe('calcLtoVsCore', () => {
+  it('returns null when only 1 month of data', () => {
+    const products = [makeProduct('Latte', 'Coffee', 10, 100)]
+    expect(calcLtoVsCore(products)).toBeNull()
+  })
+
+  it('classifies items present in >= 50% of months as core', () => {
+    // 3 months: Latte in all 3 (100% → core), Special in only 1 (33% → lto)
+    const p1: ProductRecord = { ...makeProduct('Latte', 'Coffee', 10, 100), date: '2025-01-10' }
+    const p2: ProductRecord = { ...makeProduct('Latte', 'Coffee', 10, 100), date: '2025-02-10' }
+    const p3: ProductRecord = { ...makeProduct('Latte', 'Coffee', 10, 100), date: '2025-03-10' }
+    const p4: ProductRecord = { ...makeProduct('Special', 'Food', 5, 50), date: '2025-01-10' }
+    const result = calcLtoVsCore([p1, p2, p3, p4])
+    expect(result).not.toBeNull()
+    const jan = result!.data.find(d => d.month === '2025-01')!
+    expect(jan.core).toBe(100) // Latte (core, 3/3 = 100%)
+    expect(jan.lto).toBe(50)   // Special (lto, 1/3 ≈ 33%)
+  })
+
+  it('classifies items present in < 50% of months as lto', () => {
+    const products: ProductRecord[] = [
+      { ...makeProduct('Core', 'Coffee', 10, 100), date: '2025-01-10' },
+      { ...makeProduct('Core', 'Coffee', 10, 100), date: '2025-02-10' },
+      { ...makeProduct('Core', 'Coffee', 10, 100), date: '2025-03-10' },
+      { ...makeProduct('LTO', 'Food', 5, 50), date: '2025-01-10' },
+    ]
+    const result = calcLtoVsCore(products)
+    expect(result).not.toBeNull()
+    const ltoItem = result!.ltoItems.find(i => i.item === 'LTO')
+    expect(ltoItem).toBeDefined()
+  })
+
+  it('classifies item at exactly 50% threshold as core (>= 50%)', () => {
+    // 2 months, both items in 1/2 months = 50% → core
+    const products: ProductRecord[] = [
+      { ...makeProduct('Half', 'Coffee', 10, 100), date: '2025-01-10' },
+      { ...makeProduct('Other', 'Food', 10, 100), date: '2025-02-10' },
+    ]
+    const result = calcLtoVsCore(products)
+    expect(result).not.toBeNull()
+    const feb = result!.data.find(d => d.month === '2025-02')!
+    expect(feb.lto).toBe(0) // Other is core (1/2 = 50%)
+  })
+
+  it('ltoItems are sorted by revenue descending', () => {
+    // 3 months so SmallLTO/BigLTO at 1/3 ≈ 33% are unambiguously LTO
+    const products: ProductRecord[] = [
+      { ...makeProduct('Core', 'Coffee', 10, 100), date: '2025-01-10' },
+      { ...makeProduct('Core', 'Coffee', 10, 100), date: '2025-02-10' },
+      { ...makeProduct('Core', 'Coffee', 10, 100), date: '2025-03-10' },
+      { ...makeProduct('SmallLTO', 'Food', 5, 10), date: '2025-01-10' },
+      { ...makeProduct('BigLTO', 'Food', 5, 80), date: '2025-01-10' },
+    ]
+    const result = calcLtoVsCore(products)
+    expect(result!.ltoItems[0].item).toBe('BigLTO')
+    expect(result!.ltoItems[1].item).toBe('SmallLTO')
   })
 })
