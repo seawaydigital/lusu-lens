@@ -30,8 +30,19 @@ import SeasonalItemTracker from '@/components/study/SeasonalItemTracker'
 import MenuAbcAnalysis from '@/components/shared/MenuAbcAnalysis'
 import LtoVsCoreChart from '@/components/study/LtoVsCoreChart'
 import AutoInsights from '@/components/shared/AutoInsights'
+import SectionNav from '@/components/shared/SectionNav'
 import ExportButton from '@/components/shared/ExportButton'
 import MissingDataSection from '@/components/shared/MissingDataSection'
+
+const STUDY_SECTIONS = [
+  { id: 'insights', label: 'Key Insights' },
+  { id: 'revenue', label: 'Revenue' },
+  { id: 'weekly', label: 'Weekly Performance' },
+  { id: 'products', label: 'Products' },
+  { id: 'menu-categories', label: 'Menu Categories' },
+  { id: 'patterns', label: 'Patterns' },
+  { id: 'payment', label: 'Payment' },
+]
 import type { UploadRecord, DailySummary, ProductRecord } from '@/types'
 
 // Plain-language explanations for metrics that may not be obvious to all staff
@@ -134,6 +145,8 @@ function StudyContent() {
     : activeKeys.length > 1 ? `${activeKeys.length} months` : ''
 
   return (
+    <>
+    <SectionNav sections={STUDY_SECTIONS} />
     <div className="space-y-10" id="study-dashboard">
       {/* Header */}
       <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
@@ -319,6 +332,7 @@ function StudyContent() {
         )}
       </section>
     </div>
+    </>
   )
 }
 

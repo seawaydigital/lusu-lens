@@ -34,8 +34,22 @@ import AlcoholCategoryTrend from '@/components/outpost/AlcoholCategoryTrend'
 import OutpostFoodAttach from '@/components/outpost/OutpostFoodAttach'
 import MenuAbcAnalysis from '@/components/shared/MenuAbcAnalysis'
 import AutoInsights from '@/components/shared/AutoInsights'
+import SectionNav from '@/components/shared/SectionNav'
+import CollapsibleSection from '@/components/shared/CollapsibleSection'
 import ExportButton from '@/components/shared/ExportButton'
 import MissingDataSection from '@/components/shared/MissingDataSection'
+
+const OUTPOST_SECTIONS = [
+  { id: 'insights', label: 'Key Insights' },
+  { id: 'event-analysis', label: 'Event Nights' },
+  { id: 'revenue', label: 'Revenue' },
+  { id: 'weekly', label: 'Weekly Performance' },
+  { id: 'products', label: 'Products' },
+  { id: 'menu-categories', label: 'Menu Categories' },
+  { id: 'alcohol', label: 'Alcohol & Beverage' },
+  { id: 'food', label: 'Food' },
+  { id: 'payment', label: 'Payment' },
+]
 import type { UploadRecord, DailySummary, ProductRecord } from '@/types'
 
 // Plain-language explanations for metrics that may not be obvious to all staff
@@ -141,6 +155,8 @@ function OutpostContent() {
     : activeKeys.length > 1 ? `${activeKeys.length} months` : ''
 
   return (
+    <>
+    <SectionNav sections={OUTPOST_SECTIONS} />
     <div className="space-y-10" id="outpost-dashboard">
       {/* Header */}
       <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
@@ -183,11 +199,7 @@ function OutpostContent() {
       )}
 
       {/* SECTION 1: EVENTS */}
-      <section id="event-analysis">
-        <div className="section-header">
-          <span className="section-label">Event Nights</span>
-          <span className="section-rule" />
-        </div>
+      <CollapsibleSection id="event-analysis" label="Event Nights" defaultOpen={true}>
         {hasSummary && hasProducts ? (
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
             <EventDayAnalysis summaries={summaries} eventDays={eventDays} />
@@ -201,7 +213,7 @@ function OutpostContent() {
         ) : (
           <MissingDataSection fileType="summary" venue="outpost" />
         )}
-      </section>
+      </CollapsibleSection>
 
       {/* SECTION 2: Revenue */}
       <section id="revenue">
@@ -338,11 +350,7 @@ function OutpostContent() {
       </section>
 
       {/* SECTION 7: Food */}
-      <section id="food">
-        <div className="section-header">
-          <span className="section-label">Food</span>
-          <span className="section-rule" />
-        </div>
+      <CollapsibleSection id="food" label="Food" defaultOpen={false}>
         {hasProducts ? (
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
             <OutpostFoodAttach products={products} eventDays={eventDates} />
@@ -352,7 +360,7 @@ function OutpostContent() {
         ) : (
           <MissingDataSection fileType="products" venue="outpost" />
         )}
-      </section>
+      </CollapsibleSection>
 
       {/* SECTION 8: Payment */}
       <section id="payment">
@@ -367,6 +375,7 @@ function OutpostContent() {
         )}
       </section>
     </div>
+    </>
   )
 }
 
