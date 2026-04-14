@@ -117,3 +117,36 @@ export function calcCateringRevenue(products: ProductRecord[]): {
     })),
   }
 }
+
+export function calcAlcoholCategoryTrend(
+  products: ProductRecord[]
+): Array<{ month: string; beer: number; spirits: number; wine: number; other: number }> {
+  const alcoholProducts = products.filter(p => ALCOHOL_CATEGORIES.has(p.category.toLowerCase()))
+  if (alcoholProducts.length === 0) return []
+
+  const monthMap = new Map<string, { beer: number; spirits: number; wine: number; other: number }>()
+  for (const p of alcoholProducts) {
+    const month = p.date.slice(0, 7)
+    if (!monthMap.has(month)) monthMap.set(month, { beer: 0, spirits: 0, wine: 0, other: 0 })
+    const entry = monthMap.get(month)!
+    const cat = p.category.toLowerCase()
+    if (cat === 'beer - draft' || cat === 'beer & coolers - bottles/cans') entry.beer += p.gross
+    else if (cat === 'liquor') entry.spirits += p.gross
+    else if (cat === 'wine') entry.wine += p.gross
+    else entry.other += p.gross
+  }
+
+  return Array.from(monthMap.entries())
+    .sort(([a], [b]) => a.localeCompare(b))
+    .map(([month, { beer, spirits, wine, other }]) => {
+      const total = beer + spirits + wine + other
+      if (total === 0) return { month, beer: 0, spirits: 0, wine: 0, other: 0 }
+      return {
+        month,
+        beer: (beer / total) * 100,
+        spirits: (spirits / total) * 100,
+        wine: (wine / total) * 100,
+        other: (other / total) * 100,
+      }
+    })
+}

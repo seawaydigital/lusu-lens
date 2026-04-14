@@ -167,3 +167,57 @@ describe('calcLtoVsCore', () => {
     expect(result!.ltoItems[1].item).toBe('SmallLTO')
   })
 })
+
+import { calcAlcoholCategoryTrend } from '../outpostMetrics'
+
+function makeOutpostProduct(item: string, category: string, gross: number, date = '2025-01-15'): ProductRecord {
+  return { item, category, quantity: 1, gross, date, venue: 'outpost', size: null, net: gross }
+}
+
+describe('calcAlcoholCategoryTrend', () => {
+  it('returns empty array when no alcohol products', () => {
+    const products = [makeOutpostProduct('Wings', 'food', 50)]
+    expect(calcAlcoholCategoryTrend(products)).toEqual([])
+  })
+
+  it('buckets beer categories correctly', () => {
+    const products = [
+      makeOutpostProduct('Draft', 'beer - draft', 100),
+      makeOutpostProduct('Can', 'beer & coolers - bottles/cans', 50),
+    ]
+    const result = calcAlcoholCategoryTrend(products)
+    expect(result[0].beer).toBeCloseTo(100)
+    expect(result[0].spirits).toBeCloseTo(0)
+  })
+
+  it('buckets spirits correctly', () => {
+    const products = [
+      makeOutpostProduct('Vodka', 'liquor', 100),
+      makeOutpostProduct('Draft', 'beer - draft', 100),
+    ]
+    const result = calcAlcoholCategoryTrend(products)
+    expect(result[0].spirits).toBeCloseTo(50)
+    expect(result[0].beer).toBeCloseTo(50)
+  })
+
+  it('percentages sum to 100 within a month', () => {
+    const products = [
+      makeOutpostProduct('Draft', 'beer - draft', 60),
+      makeOutpostProduct('Vodka', 'liquor', 30),
+      makeOutpostProduct('Wine', 'wine', 10),
+    ]
+    const result = calcAlcoholCategoryTrend(products)
+    const total = result[0].beer + result[0].spirits + result[0].wine + result[0].other
+    expect(total).toBeCloseTo(100)
+  })
+
+  it('returns entries sorted by month ascending', () => {
+    const products = [
+      makeOutpostProduct('Draft', 'beer - draft', 100, '2025-03-01'),
+      makeOutpostProduct('Draft', 'beer - draft', 100, '2025-01-01'),
+    ]
+    const result = calcAlcoholCategoryTrend(products)
+    expect(result[0].month).toBe('2025-01')
+    expect(result[1].month).toBe('2025-03')
+  })
+})
