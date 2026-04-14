@@ -1,4 +1,4 @@
-import type { DailySummary } from '@/types'
+import type { DailySummary, ProductRecord, MenuEngineeringItem, MenuTier } from '@/types'
 
 export function calcGrossRevenue(summaries: DailySummary[]): number {
   return summaries.reduce((sum, s) => sum + s.grossSales, 0)
@@ -65,4 +65,42 @@ export function formatCurrency(value: number): string {
 
 export function formatPercent(value: number): string {
   return `${value.toFixed(1)}%`
+}
+
+function medianOf(sorted: number[]): number {
+  const mid = Math.floor(sorted.length / 2)
+  return sorted.length % 2 === 0
+    ? (sorted[mid - 1] + sorted[mid]) / 2
+    : sorted[mid]
+}
+
+export function calcMenuEngineering(products: ProductRecord[]): MenuEngineeringItem[] {
+  const itemMap = new Map<string, { category: string; quantity: number; revenue: number }>()
+  for (const p of products) {
+    const existing = itemMap.get(p.item)
+    if (existing) {
+      existing.quantity += p.quantity
+      existing.revenue += p.gross
+    } else {
+      itemMap.set(p.item, { category: p.category, quantity: p.quantity, revenue: p.gross })
+    }
+  }
+
+  if (itemMap.size < 4) return []
+
+  const items = Array.from(itemMap.entries()).map(([item, data]) => ({ item, ...data }))
+
+  const sortedQty = items.map(i => i.quantity).sort((a, b) => a - b)
+  const sortedRev = items.map(i => i.revenue).sort((a, b) => a - b)
+  const medianQty = medianOf(sortedQty)
+  const medianRev = medianOf(sortedRev)
+
+  return items.map(({ item, category, quantity, revenue }) => {
+    let tier: MenuTier
+    if (quantity >= medianQty && revenue >= medianRev) tier = 'star'
+    else if (quantity >= medianQty && revenue < medianRev) tier = 'plowhorse'
+    else if (quantity < medianQty && revenue >= medianRev) tier = 'puzzle'
+    else tier = 'dog'
+    return { item, category, quantity, revenue, tier }
+  })
 }
