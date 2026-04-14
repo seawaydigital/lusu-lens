@@ -350,7 +350,11 @@ function OutpostContent() {
       </section>
 
       {/* SECTION 7: Food */}
-      <CollapsibleSection id="food" label="Food" defaultOpen={false}>
+      <section id="food">
+        <div className="section-header">
+          <span className="section-label">Food</span>
+          <span className="section-rule" />
+        </div>
         {hasProducts ? (
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
             <OutpostFoodAttach products={products} eventDays={eventDates} />
@@ -360,7 +364,7 @@ function OutpostContent() {
         ) : (
           <MissingDataSection fileType="products" venue="outpost" />
         )}
-      </CollapsibleSection>
+      </section>
 
       {/* SECTION 8: Payment */}
       <section id="payment">
