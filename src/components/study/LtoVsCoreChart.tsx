@@ -58,6 +58,24 @@ function CustomTooltip({ active, label, payload }: CustomTooltipProps) {
 export default function LtoVsCoreChart({ products }: LtoVsCoreChartProps) {
   const result = useMemo(() => calcLtoVsCore(products), [products])
 
+  // Must be called unconditionally — hooks cannot come after an early return
+  const insight = useMemo(() => {
+    if (!result) return ''
+    const { data } = result
+    const totalRevenue = data.reduce((sum, d) => sum + d.core + d.lto, 0)
+    const totalLto = data.reduce((sum, d) => sum + d.lto, 0)
+    const ltoPct = totalRevenue > 0 ? Math.round((totalLto / totalRevenue) * 100) : 0
+    const firstCore = data[0]?.core ?? 0
+    const lastCore = data[data.length - 1]?.core ?? 0
+    // Compare first vs last month (net direction over full selected period)
+    const coreDelta = firstCore > 0 ? ((lastCore - firstCore) / firstCore) * 100 : 0
+    let coreTrend: string
+    if (coreDelta > 3) coreTrend = 'Core revenue grew while LTOs were active.'
+    else if (coreDelta < -3) coreTrend = 'Core revenue declined while LTOs were active.'
+    else coreTrend = 'Core revenue held steady while LTOs were active.'
+    return `LTO items contributed ${ltoPct}% of revenue. ${coreTrend}`
+  }, [result])
+
   if (!result) {
     return (
       <div className="bg-white rounded-xl p-5 shadow-card ring-1 ring-black/[0.06] border-t-2 border-t-study-gold">
@@ -70,27 +88,6 @@ export default function LtoVsCoreChart({ products }: LtoVsCoreChartProps) {
   }
 
   const { data, ltoItems } = result
-
-  const insight = useMemo(() => {
-    const totalRevenue = data.reduce((sum, d) => sum + d.core + d.lto, 0)
-    const totalLto = data.reduce((sum, d) => sum + d.lto, 0)
-    const ltoPct = totalRevenue > 0 ? Math.round((totalLto / totalRevenue) * 100) : 0
-
-    const firstCore = data[0]?.core ?? 0
-    const lastCore = data[data.length - 1]?.core ?? 0
-    const coreDelta = firstCore > 0 ? ((lastCore - firstCore) / firstCore) * 100 : 0
-
-    let coreTrend: string
-    if (coreDelta > 3) {
-      coreTrend = 'Core revenue grew while LTOs were active.'
-    } else if (coreDelta < -3) {
-      coreTrend = 'Core revenue declined while LTOs were active.'
-    } else {
-      coreTrend = 'Core revenue held steady while LTOs were active.'
-    }
-
-    return `LTO items contributed ${ltoPct}% of revenue. ${coreTrend}`
-  }, [data])
 
   return (
     <div className="bg-white rounded-xl p-5 shadow-card ring-1 ring-black/[0.06] border-t-2 border-t-study-gold">
@@ -123,7 +120,7 @@ export default function LtoVsCoreChart({ products }: LtoVsCoreChartProps) {
             tickFormatter={yTickFormatter}
           />
           <Tooltip content={<CustomTooltip />} />
-          <Bar dataKey="core" stackId="revenue" fill="#C4A952" name="core" radius={[0, 0, 0, 0]} />
+          <Bar dataKey="core" stackId="revenue" fill="#C4A952" name="core" />
           <Bar dataKey="lto" stackId="revenue" fill="#00B4E6" name="lto" radius={[3, 3, 0, 0]} />
         </BarChart>
       </ResponsiveContainer>
