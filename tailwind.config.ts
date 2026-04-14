@@ -15,12 +15,12 @@ const config: Config = {
         'study-black': '#1A1A1A',
         'outpost-black': '#0D0D0D',
         'outpost-red': '#E63946',
-        'app-bg': '#F7F8FA',
+        'app-bg': '#EEF2F7',
       },
       boxShadow: {
-        'card': '0 1px 3px 0 rgba(0,0,0,0.06), 0 1px 2px -1px rgba(0,0,0,0.04)',
-        'card-hover': '0 4px 16px -4px rgba(0,0,0,0.10), 0 2px 6px -2px rgba(0,0,0,0.05)',
-        'navbar': '0 1px 0 0 rgba(0,0,0,0.15)',
+        'card': '0 1px 2px rgba(0,0,0,0.04), 0 3px 12px rgba(0,0,0,0.05)',
+        'card-hover': '0 2px 4px rgba(0,0,0,0.05), 0 10px 32px rgba(0,0,0,0.09)',
+        'navbar': '0 1px 0 rgba(0,0,0,0.10), 0 4px 20px rgba(0,0,0,0.08)',
       },
       backgroundImage: {
         'hero-gradient': 'linear-gradient(135deg, #1B3A6B 0%, #0D2347 100%)',

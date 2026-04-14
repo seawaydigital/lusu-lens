@@ -15,15 +15,18 @@
 }
 
 @layer components {
-  /* ── Section header: label + full-width rule ── */
+  /* ── Section header: label + gradient rule ── */
   .section-header {
-    @apply flex items-center gap-3 mb-6;
+    @apply flex items-center gap-4 mb-8;
   }
   .section-label {
-    @apply text-xl font-bold text-gray-800 whitespace-nowrap;
+    @apply text-xl font-bold tracking-tight text-gray-900 whitespace-nowrap;
   }
   .section-rule {
-    @apply flex-1 h-px bg-gray-200;
+    flex: 1 1 0%;
+    min-width: 0;
+    height: 1px;
+    background: linear-gradient(to right, #cbd5e1 0%, transparent 75%);
   }
 
   /* ── Spinner used in loading states ── */
@@ -33,10 +36,10 @@
 
   /* ── Unified card surface ── */
   .card {
-    @apply bg-white rounded-xl shadow-card ring-1 ring-black/[0.06];
+    @apply bg-white rounded-xl border border-gray-100 shadow-card;
   }
   .card-hover {
-    @apply hover:shadow-card-hover hover:-translate-y-px transition-all duration-150;
+    @apply hover:shadow-card-hover hover:-translate-y-px transition-all duration-200;
   }
 }
 

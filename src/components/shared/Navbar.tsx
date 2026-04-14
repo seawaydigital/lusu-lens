@@ -34,47 +34,53 @@ export default function Navbar() {
   }
 
   return (
-    <nav className="bg-lusu-navy text-white sticky top-0 z-40 shadow-navbar">
+    <nav
+      className="sticky top-0 z-40 text-white"
+      style={{ background: 'linear-gradient(135deg, #1B3A6B 0%, #152d58 100%)', boxShadow: '0 1px 0 rgba(0,0,0,0.12), 0 4px 20px rgba(0,0,0,0.12)' }}
+    >
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="flex items-center justify-between h-[60px]">
+        <div className="flex items-center justify-between h-[64px]">
 
           {/* Brand */}
-          <Link href="/" className="flex items-center gap-2.5 shrink-0">
+          <Link href="/" className="flex items-center gap-3 shrink-0">
             <Image
               src="/lusu-lens/logos/lens-logo.png"
               alt="LUSU Lens"
-              width={36}
-              height={36}
+              width={34}
+              height={34}
               className="object-contain rounded-full"
             />
             <div className="hidden sm:block">
               <span className="text-[15px] font-bold tracking-tight text-white leading-none">
                 LUSU <span className="text-lusu-cyan">Lens</span>
               </span>
-              <p className="text-[10px] text-white/40 tracking-widest uppercase leading-none mt-0.5">
+              <p className="text-[9.5px] text-white/35 tracking-[0.14em] uppercase leading-none mt-0.5 font-medium">
                 Business Intelligence
               </p>
             </div>
           </Link>
 
+          {/* Thin vertical divider */}
+          <div className="hidden md:block w-px h-5 bg-white/10 mx-2" />
+
           {/* Desktop nav */}
-          <div className="hidden md:flex items-center">
+          <div className="hidden md:flex items-center gap-0.5 flex-1 ml-2">
             {NAV_ITEMS.map(({ href, label, icon: Icon }) => {
               const active = isActive(href)
               return (
                 <Link
                   key={href}
                   href={href}
-                  className={`relative flex items-center gap-1.5 px-3 py-2 text-[13px] font-medium transition-colors ${
+                  className={`relative flex items-center gap-1.5 px-3.5 py-2 text-[13px] font-medium rounded-md transition-all duration-150 ${
                     active
-                      ? 'text-white'
-                      : 'text-white/55 hover:text-white/90'
+                      ? 'text-white bg-white/10'
+                      : 'text-white/55 hover:text-white/90 hover:bg-white/[0.06]'
                   }`}
                 >
-                  <Icon size={14} strokeWidth={active ? 2.2 : 1.8} />
+                  <Icon size={13} strokeWidth={active ? 2.2 : 1.8} />
                   {label}
                   {active && (
-                    <span className="absolute bottom-0 inset-x-0 h-[2px] bg-lusu-cyan rounded-t-sm" />
+                    <span className="absolute bottom-0 inset-x-3 h-[3px] bg-lusu-cyan rounded-t-full" />
                   )}
                 </Link>
               )
@@ -109,7 +115,7 @@ export default function Navbar() {
                       : 'text-white/60 hover:bg-white/[0.06] hover:text-white'
                   }`}
                 >
-                  <Icon size={15} />
+                  <Icon size={14} />
                   {label}
                   {active && (
                     <span className="ml-auto w-1.5 h-1.5 rounded-full bg-lusu-cyan" />
