@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useMemo } from 'react'
 import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
   LineChart, Line, Legend,
@@ -8,6 +8,7 @@ import {
 import { calcSizeDistribution, calcSizeDistributionTrend } from '@/lib/metrics/studyMetrics'
 import type { ProductRecord } from '@/types'
 
+// Cycles for up to 4 distinct sizes (typical: Small / Medium / Large / XL)
 const TREND_COLORS = ['#C4A952', '#00B4E6', '#1B3A6B', '#9CA3AF']
 
 interface SizeDistributionProps {
@@ -23,27 +24,32 @@ function formatMonthLabel(ym: string): string {
 export default function SizeDistribution({ products }: SizeDistributionProps) {
   const [activeTab, setActiveTab] = useState<'distribution' | 'trend'>('distribution')
 
-  const data = calcSizeDistribution(products)
-  if (data.length === 0) return null
+  const data = useMemo(() => calcSizeDistribution(products), [products])
 
-  const monthCount = Array.from(new Set(products.map(p => p.date.slice(0, 7)))).length
-  const showTabs = monthCount >= 2
+  // Compute trend data unconditionally; showTabs derived from result length
+  const trendRaw = useMemo(() => calcSizeDistributionTrend(products), [products])
+  const showTabs = trendRaw.length >= 2
 
-  const trendRaw = showTabs ? calcSizeDistributionTrend(products) : []
-
-  // Collect all unique sizes from trend data
-  const allSizes = Array.from(
-    new Set(trendRaw.flatMap(row => Object.keys(row.sizes)))
+  const allSizes = useMemo(
+    () => Array.from(new Set(trendRaw.flatMap(row => Object.keys(row.sizes)))),
+    [trendRaw]
   )
 
-  // Flatten trend data into recharts-friendly rows
-  const trendData = trendRaw.map(row => {
-    const entry: Record<string, string | number> = { month: formatMonthLabel(row.month) }
-    for (const size of allSizes) {
-      entry[size] = row.sizes[size] !== undefined ? Math.round(row.sizes[size] * 10) / 10 : 0
-    }
-    return entry
-  })
+  // Keep raw YYYY-MM as the data key; format only at display time via tickFormatter
+  const trendData = useMemo(
+    () => trendRaw.map(row => {
+      const entry: Record<string, string | number> = { month: row.month }
+      for (const size of allSizes) {
+        entry[size] = row.sizes[size] !== undefined
+          ? Math.round(row.sizes[size] * 10) / 10
+          : 0
+      }
+      return entry
+    }),
+    [trendRaw, allSizes]
+  )
+
+  if (data.length === 0) return null
 
   return (
     <div className="bg-white rounded-xl p-5 shadow-card ring-1 ring-black/[0.06] border-t-2 border-t-study-gold">
@@ -97,7 +103,11 @@ export default function SizeDistribution({ products }: SizeDistributionProps) {
         <ResponsiveContainer width="100%" height={220}>
           <LineChart data={trendData}>
             <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
-            <XAxis dataKey="month" tick={{ fontSize: 11 }} />
+            <XAxis
+              dataKey="month"
+              tick={{ fontSize: 11 }}
+              tickFormatter={formatMonthLabel}
+            />
             <YAxis
               domain={[0, 100]}
               tick={{ fontSize: 11 }}
@@ -109,6 +119,7 @@ export default function SizeDistribution({ products }: SizeDistributionProps) {
                   ? [`${value.toFixed(1)}%`, String(name)]
                   : [String(value), String(name)]
               }
+              labelFormatter={(label) => formatMonthLabel(String(label))}
             />
             <Legend wrapperStyle={{ fontSize: 11 }} />
             {allSizes.map((size, i) => (
