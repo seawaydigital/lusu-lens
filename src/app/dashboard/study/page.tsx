@@ -41,6 +41,7 @@ const STUDY_SECTIONS = [
   { id: 'products', label: 'Products' },
   { id: 'menu-categories', label: 'Menu Categories' },
   { id: 'patterns', label: 'Patterns' },
+  { id: 'food', label: 'Food' },
   { id: 'payment', label: 'Payment' },
 ]
 import type { UploadRecord, DailySummary, ProductRecord } from '@/types'
@@ -309,7 +310,6 @@ function StudyContent() {
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
             {hasSummary && <DowChart summaries={summaries} accentColor="#C4A952" />}
             {hasProducts && <HotColdSplit products={products} />}
-            {hasProducts && <FoodAttachRate products={products} />}
             {hasProducts && <SizeDistribution products={products} />}
             {hasProducts && <SeasonalItemTracker hasMultipleMonths={studyUploads.length >= 2} />}
             {hasProducts && <LtoVsCoreChart products={products} />}
@@ -317,6 +317,21 @@ function StudyContent() {
             {!hasProducts && <MissingDataSection fileType="products" venue="study" />}
           </div>
         ) : null}
+      </section>
+
+      {/* Section: Food */}
+      <section id="food">
+        <div className="section-header">
+          <span className="section-label">Food</span>
+          <span className="section-rule" />
+        </div>
+        {hasProducts ? (
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            <FoodAttachRate products={products} />
+          </div>
+        ) : (
+          <MissingDataSection fileType="products" venue="study" />
+        )}
       </section>
 
       {/* Section: Payment */}
