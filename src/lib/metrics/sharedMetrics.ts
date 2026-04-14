@@ -67,7 +67,7 @@ export function formatPercent(value: number): string {
   return `${value.toFixed(1)}%`
 }
 
-function medianOf(sorted: number[]): number {
+export function medianOf(sorted: number[]): number {
   const mid = Math.floor(sorted.length / 2)
   return sorted.length % 2 === 0
     ? (sorted[mid - 1] + sorted[mid]) / 2

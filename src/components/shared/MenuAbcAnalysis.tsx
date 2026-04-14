@@ -1,11 +1,11 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useMemo } from 'react'
 import {
   ScatterChart, Scatter, XAxis, YAxis, CartesianGrid,
   Tooltip, ReferenceLine, ResponsiveContainer, Cell,
 } from 'recharts'
-import { calcMenuEngineering, formatCurrency } from '@/lib/metrics/sharedMetrics'
+import { calcMenuEngineering, formatCurrency, medianOf } from '@/lib/metrics/sharedMetrics'
 import type { ProductRecord, MenuEngineeringItem, MenuTier } from '@/types'
 
 const TIER_COLORS: Record<MenuTier, string> = {
@@ -16,10 +16,10 @@ const TIER_COLORS: Record<MenuTier, string> = {
 }
 
 const TIER_LABELS: Record<MenuTier, string> = {
-  star: '⭐ Stars',
-  plowhorse: '🐴 Plowhorses',
-  puzzle: '🧩 Puzzles',
-  dog: '🐶 Dogs',
+  star: 'Stars',
+  plowhorse: 'Plowhorses',
+  puzzle: 'Puzzles',
+  dog: 'Dogs',
 }
 
 const TIER_DESCRIPTIONS: Record<MenuTier, string> = {
@@ -55,30 +55,37 @@ function ScatterTooltip({ active, payload }: TooltipProps) {
 export default function MenuAbcAnalysis({ products, venue }: MenuAbcAnalysisProps) {
   const [activeTab, setActiveTab] = useState<MenuTier>('dog')
 
-  const items = calcMenuEngineering(products)
+  const items = useMemo(() => calcMenuEngineering(products), [products])
 
   const topBorder = venue === 'study' ? 'border-t-study-gold' : 'border-t-outpost-black'
 
+  const { medianQty, medianRev } = useMemo(() => {
+    if (items.length === 0) return { medianQty: 0, medianRev: 0 }
+    const sortedQty = items.map(i => i.quantity).sort((a, b) => a - b)
+    const sortedRev = items.map(i => i.revenue).sort((a, b) => a - b)
+    return { medianQty: medianOf(sortedQty), medianRev: medianOf(sortedRev) }
+  }, [items])
+
+  const tabCounts = useMemo(() => {
+    const counts: Record<MenuTier, number> = { star: 0, plowhorse: 0, puzzle: 0, dog: 0 }
+    for (const i of items) counts[i.tier]++
+    return counts
+  }, [items])
+
+  const tabs: MenuTier[] = ['star', 'plowhorse', 'puzzle', 'dog']
+  const tabItems = useMemo(
+    () => items.filter(i => i.tier === activeTab).sort((a, b) => b.revenue - a.revenue),
+    [items, activeTab]
+  )
+
   if (items.length === 0) {
     return (
-      <div className={`bg-white rounded-xl p-5 shadow-card ring-1 ring-black/[0.06] border-t-2 ${topBorder}`}>
+      <div className={`bg-white rounded-xl p-5 shadow-card ring-1 ring-black/[0.06] border-t-2 ${topBorder} col-span-full`}>
         <p className="text-[11px] font-semibold tracking-[0.08em] uppercase text-gray-400 mb-2">Menu Engineering</p>
         <p className="text-sm text-gray-400">Not enough menu data to classify items.</p>
       </div>
     )
   }
-
-  const sortedQty = items.map(i => i.quantity).sort((a, b) => a - b)
-  const sortedRev = items.map(i => i.revenue).sort((a, b) => a - b)
-  const midQ = Math.floor(sortedQty.length / 2)
-  const midR = Math.floor(sortedRev.length / 2)
-  const medianQty = sortedQty.length % 2 === 0
-    ? (sortedQty[midQ - 1] + sortedQty[midQ]) / 2 : sortedQty[midQ]
-  const medianRev = sortedRev.length % 2 === 0
-    ? (sortedRev[midR - 1] + sortedRev[midR]) / 2 : sortedRev[midR]
-
-  const tabs: MenuTier[] = ['star', 'plowhorse', 'puzzle', 'dog']
-  const tabItems = items.filter(i => i.tier === activeTab).sort((a, b) => b.revenue - a.revenue)
 
   return (
     <div className={`bg-white rounded-xl p-5 shadow-card ring-1 ring-black/[0.06] border-t-2 ${topBorder} col-span-full`}>
@@ -97,12 +104,14 @@ export default function MenuAbcAnalysis({ products, venue }: MenuAbcAnalysisProp
         <ScatterChart margin={{ top: 10, right: 20, bottom: 20, left: 10 }}>
           <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
           <XAxis
+            type="number"
             dataKey="quantity"
             name="Units Sold"
             tick={{ fontSize: 11 }}
             label={{ value: 'Units Sold', position: 'insideBottom', offset: -10, fontSize: 11, fill: '#9CA3AF' }}
           />
           <YAxis
+            type="number"
             dataKey="revenue"
             name="Revenue"
             tick={{ fontSize: 11 }}
@@ -112,8 +121,8 @@ export default function MenuAbcAnalysis({ products, venue }: MenuAbcAnalysisProp
           <ReferenceLine y={medianRev} stroke="#e5e7eb" strokeDasharray="4 4" strokeWidth={1.5} />
           <Tooltip content={<ScatterTooltip />} />
           <Scatter data={items} fillOpacity={0.85}>
-            {items.map((item, idx) => (
-              <Cell key={idx} fill={TIER_COLORS[item.tier]} />
+            {items.map((item) => (
+              <Cell key={item.item} fill={TIER_COLORS[item.tier]} />
             ))}
           </Scatter>
         </ScatterChart>
@@ -133,7 +142,7 @@ export default function MenuAbcAnalysis({ products, venue }: MenuAbcAnalysisProp
             >
               {TIER_LABELS[tier]}{' '}
               <span className={activeTab === tier ? 'opacity-60' : 'opacity-50'}>
-                {items.filter(i => i.tier === tier).length}
+                {tabCounts[tier]}
               </span>
             </button>
           ))}
@@ -155,8 +164,8 @@ export default function MenuAbcAnalysis({ products, venue }: MenuAbcAnalysisProp
                 </tr>
               </thead>
               <tbody>
-                {tabItems.map((item, idx) => (
-                  <tr key={idx} className="border-b border-gray-50 hover:bg-gray-50">
+                {tabItems.map((item) => (
+                  <tr key={item.item} className="border-b border-gray-50 hover:bg-gray-50">
                     <td className="py-1.5 pr-4 text-gray-900 font-medium max-w-[180px] truncate">{item.item}</td>
                     <td className="py-1.5 pr-4 text-gray-500">{item.category}</td>
                     <td className="py-1.5 pr-4 text-gray-900 text-right tabular-nums">{item.quantity.toLocaleString()}</td>
